@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
-}
+export type NexusWebhookParams = {
+/**
+ * Integration token sent by Nexus Pag as query param
+ */
+token?: string;
+};

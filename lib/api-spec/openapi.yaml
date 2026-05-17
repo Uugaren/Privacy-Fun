@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: payments
+    description: Payment webhook operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /payments/nexus-webhook:
+    post:
+      operationId: nexusWebhook
+      tags: [payments]
+      summary: Nexus Pag payment webhook
+      description: Receives payment status notifications from Nexus Pag
+      parameters:
+        - name: token
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Integration token sent by Nexus Pag as query param
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NexusWebhookPayload"
+      responses:
+        "200":
+          description: Webhook received successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookAck"
+        "401":
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookError"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +70,42 @@ components:
       required:
         - status
 
+    NexusWebhookPayload:
+      type: object
+      description: Dynamic payload from Nexus Pag. Fields vary by event type.
+      properties:
+        id:
+          type: string
+          description: Nexus Pag order/transaction ID
+        status:
+          type: string
+          description: Payment status (e.g. pago, approved, pending, failed)
+        email:
+          type: string
+          description: Customer email
+        amount:
+          type: number
+          description: Payment amount in cents
+        created_at:
+          type: string
+          description: ISO timestamp from Nexus Pag
+      additionalProperties: true
+
+    WebhookAck:
+      type: object
+      properties:
+        received:
+          type: boolean
+        processed:
+          type: boolean
+      required:
+        - received
+        - processed
+
+    WebhookError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

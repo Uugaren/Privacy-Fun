@@ -5,9 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 /**
  * Dynamic payload from Nexus Pag. Fields vary by event type.
@@ -25,20 +22,3 @@ export interface NexusWebhookPayload {
   created_at?: string;
   [key: string]: unknown;
  }
-
-export interface WebhookAck {
-  received: boolean;
-  processed: boolean;
-}
-
-export interface WebhookError {
-  error: string;
-}
-
-export type NexusWebhookParams = {
-/**
- * Integration token sent by Nexus Pag as query param
- */
-token?: string;
-};
-
