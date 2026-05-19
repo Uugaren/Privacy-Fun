@@ -18,6 +18,25 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * Initiates a Pix payment order and returns QR code data for the customer
+ * @summary Create a Pix checkout via Nexus Pag
+ */
+export const CreateCheckoutBody = zod.object({
+  "email": zod.string().describe('Customer email address'),
+  "amount": zod.union([zod.number(),zod.string()]).describe('Payment amount in reais (e.g. 21.87 = R$21,87)')
+})
+
+export const CreateCheckoutResponse = zod.object({
+  "order_id": zod.string().describe('Internal order ID (UUID)'),
+  "status": zod.string().describe('Initial order status from Nexus Pag'),
+  "pix_copy_paste": zod.string().describe('Pix copia e cola code'),
+  "pix_qr_code": zod.string().describe('QR Code image in base64'),
+  "expires_at": zod.string().optional().describe('Expiration datetime ISO 8601'),
+  "amount": zod.number().optional().describe('Confirmed amount in reais')
+})
+
+
+/**
  * Receives payment status notifications from Nexus Pag
  * @summary Nexus Pag payment webhook
  */

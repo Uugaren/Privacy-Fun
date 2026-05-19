@@ -27,6 +27,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  /checkout:
+    post:
+      operationId: createCheckout
+      tags: [payments]
+      summary: Create a Pix checkout via Nexus Pag
+      description: Initiates a Pix payment order and returns QR code data for the customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutInput"
+      responses:
+        "200":
+          description: Pix order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookError"
+        "502":
+          description: Nexus Pag gateway error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookError"
+
   /payments/nexus-webhook:
     post:
       operationId: nexusWebhook
@@ -101,6 +133,48 @@ components:
       required:
         - received
         - processed
+
+    CheckoutInput:
+      type: object
+      properties:
+        email:
+          type: string
+          description: Customer email address
+        amount:
+          description: Payment amount in reais (e.g. 21.87 = R$21,87)
+          oneOf:
+            - type: number
+            - type: string
+      required:
+        - email
+        - amount
+
+    CheckoutResponse:
+      type: object
+      properties:
+        order_id:
+          type: string
+          description: Internal order ID (UUID)
+        status:
+          type: string
+          description: Initial order status from Nexus Pag
+        pix_copy_paste:
+          type: string
+          description: Pix copia e cola code
+        pix_qr_code:
+          type: string
+          description: QR Code image in base64
+        expires_at:
+          type: string
+          description: Expiration datetime ISO 8601
+        amount:
+          type: number
+          description: Confirmed amount in reais
+      required:
+        - order_id
+        - status
+        - pix_copy_paste
+        - pix_qr_code
 
     WebhookError:
       type: object

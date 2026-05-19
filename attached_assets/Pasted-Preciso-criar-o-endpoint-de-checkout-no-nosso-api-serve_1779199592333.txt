@@ -1,0 +1,23 @@
+Preciso criar o endpoint de checkout no nosso api-server integrado com a API da Nexus Pag. Como eles operam puramente como um gateway direto (Pass-Through), o nosso backend deve iniciar o pedido e requisitar a geração do Pix.
+
+Use como referência técnica de estrutura de dados o modelo oficial da documentação deles para criação de Pix: https://nexuspag.com/docs/create-pix
+
+Por favor, execute os seguintes passos no projeto:
+
+1. **Atualizar a Especificação da API (`lib/api-spec/openapi.yaml`)**:
+   - Crie a rota `POST /checkout`.
+   - No `requestBody`, defina um schema aceitando: `email` (string, obrigatório) e `amount` (number ou string, obrigatório).
+   - No `responses` (200), defina que a rota retornará um objeto contendo o status do pedido, o código `pix_copy_paste`, a imagem/link do `pix_qr_code` e o `order_id`.
+
+2. **Criar o Controller de Checkout (`artifacts/api-server/src/routes/checkout.ts`)**:
+   - Crie o ficheiro e implemente a lógica HTTP.
+   - Quando a rota for chamada, use a biblioteca `axios` ou o `fetch` nativo para disparar um `POST` para o endpoint de criação de Pix da Nexus Pag.
+   - Passe no Header de `Authorization` (ou no formato exigido pela documentação deles) a nossa variável de ambiente `NEXUS_WEBHOOK_SECRET` que já salvamos nas configurações.
+   - No corpo da requisição para a Nexus, envie o valor (`amount`), o e-mail do cliente, e defina a nossa URL de webhook como callback: `https://privacy-fun--arthur007rocha.replit.app/api/payments/nexus-webhook?token=` usando o nosso secret.
+   - Antes de responder ao cliente, faça um insert na tabela `orders` usando o Drizzle ORM salvando este pedido com o status 'pending'.
+   - Retorne o JSON com os dados do Pix recebidos da Nexus para o frontend.
+
+3. **Conectar a nova rota no Index (`artifacts/api-server/src/routes/index.ts`)**:
+   - Importe e registre o `checkoutRouter` através do `router.use()`.
+
+Assim que concluir a criação dos ficheiros no backend, avise-me se realizou o "pnpm run codegen" para atualizar as tipagens automáticas do Orval.
