@@ -9,19 +9,56 @@ export interface HealthStatus {
   status: string;
 }
 
-/**
- * Dynamic payload from Nexus Pag. Fields vary by event type.
- */
-export interface NexusWebhookPayload {
-  /** Nexus Pag order/transaction ID */
-  id?: string;
-  /** Payment status (e.g. pago, approved, pending, failed) */
-  status?: string;
-  /** Customer email */
-  email?: string;
-  /** Payment amount in cents */
+export interface CheckoutInput {
+  email: string;
+  /** Password to create the account (min 6 chars) */
+  password: string;
+  /** Payment amount in reais (e.g. 21.87) */
+  amount: number | string;
+}
+
+export interface CheckoutResponse {
+  order_id: string;
+  status: string;
+  pix_copy_paste: string;
+  pix_qr_code: string;
+  expires_at?: string;
   amount?: number;
-  /** ISO timestamp from Nexus Pag */
+}
+
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
+export interface UserProfile {
+  id: number;
+  email: string;
+  role: string;
+}
+
+export interface AuthSession {
+  /** JWT token */
+  token: string;
+  user: UserProfile;
+}
+
+export interface AccessItem {
+  id: number;
+  externalOrderId: string;
+  grantedAt: string;
+}
+
+export interface AccessResponse {
+  hasAccess: boolean;
+  items: AccessItem[];
+}
+
+export interface NexusWebhookPayload {
+  id?: string;
+  status?: string;
+  email?: string;
+  amount?: number;
   created_at?: string;
   [key: string]: unknown;
  }
@@ -31,36 +68,11 @@ export interface WebhookAck {
   processed: boolean;
 }
 
-export interface CheckoutInput {
-  /** Customer email address */
-  email: string;
-  /** Payment amount in reais (e.g. 21.87 = R$21,87) */
-  amount: number | string;
-}
-
-export interface CheckoutResponse {
-  /** Internal order ID (UUID) */
-  order_id: string;
-  /** Initial order status from Nexus Pag */
-  status: string;
-  /** Pix copia e cola code */
-  pix_copy_paste: string;
-  /** QR Code image in base64 */
-  pix_qr_code: string;
-  /** Expiration datetime ISO 8601 */
-  expires_at?: string;
-  /** Confirmed amount in reais */
-  amount?: number;
-}
-
-export interface WebhookError {
+export interface ApiError {
   error: string;
 }
 
 export type NexusWebhookParams = {
-/**
- * Integration token sent by Nexus Pag as query param
- */
 token?: string;
 };
 

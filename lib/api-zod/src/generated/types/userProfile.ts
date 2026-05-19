@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type NexusWebhookParams = {
-token?: string;
-};
+export interface UserProfile {
+  id: number;
+  email: string;
+  role: string;
+}

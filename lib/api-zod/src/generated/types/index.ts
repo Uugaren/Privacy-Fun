@@ -6,10 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './accessItem';
+export * from './accessResponse';
+export * from './apiError';
+export * from './authSession';
 export * from './checkoutInput';
 export * from './checkoutResponse';
 export * from './healthStatus';
+export * from './loginInput';
 export * from './nexusWebhookParams';
 export * from './nexusWebhookPayload';
+export * from './userProfile';
 export * from './webhookAck';
-export * from './webhookError';

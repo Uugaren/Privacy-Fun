@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { Link, Route, Switch, useLocation, Redirect } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Bell,
   Heart,
@@ -11,11 +13,340 @@ import {
   ChevronUp,
   Ellipsis,
   UserCheck,
+  X,
+  Loader2,
+  Copy,
+  CheckCircle2,
+  ChevronDown
 } from "lucide-react";
+import { useCreateCheckout, useLogin, useGetMyAccess } from "@workspace/api-client-react";
+
 import profileImg from "./assets/profile-img.png";
 import coverImg from "./assets/cover-img.png";
 import contentImg from "./assets/content-img.png";
 
+// ============================================================================
+// QUERY CLIENT
+// ============================================================================
+const queryClient = new QueryClient();
+
+// ============================================================================
+// AUTH CONTEXT
+// ============================================================================
+interface User {
+  id: string;
+  email: string;
+  role?: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  login: (token: string, user: User) => void;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  return context;
+}
+
+function AuthProvider({ children }: { children: ReactNode }) {
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("privacy_token"));
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem("privacy_user");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const login = (newToken: string, newUser: User) => {
+    localStorage.setItem("privacy_token", newToken);
+    localStorage.setItem("privacy_user", JSON.stringify(newUser));
+    setToken(newToken);
+    setUser(newUser);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("privacy_token");
+    localStorage.removeItem("privacy_user");
+    setToken(null);
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, token, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// Helper to get auth headers for API calls
+export const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem("privacy_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// ============================================================================
+// COMPONENTS
+// ============================================================================
+
+// --- Header ---
+function Header() {
+  const { user, logout } = useAuth();
+  const [, setLocation] = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between bg-white border-b border-gray-100 px-4">
+      <Link href="/" className="text-[20px] font-extrabold tracking-[-0.08em] text-black">
+        privacy<span className="text-[#f59b32]">.</span>
+      </Link>
+      <div className="flex items-center gap-3">
+        {user ? (
+          <div className="relative">
+            <button 
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="flex items-center gap-2 h-9 px-2 rounded-full hover:bg-gray-50 transition"
+            >
+              <div className="h-7 w-7 overflow-hidden rounded-full bg-gradient-to-br from-[#e89c30] to-[#f5c842] flex items-center justify-center text-white text-[11px] font-bold uppercase shadow-sm">
+                {user.email.substring(0, 2)}
+              </div>
+              <ChevronDown className="h-4 w-4 text-gray-400" />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-gray-100 bg-white shadow-xl z-50 py-1 overflow-hidden">
+                  <Link href="/members" onClick={() => setMenuOpen(false)}>
+                    <div className="flex items-center w-full px-4 py-2.5 text-[14px] font-medium text-gray-700 hover:bg-gray-50 hover:text-black">
+                      Área de Membros
+                    </div>
+                  </Link>
+                  <button 
+                    onClick={() => {
+                      logout();
+                      setMenuOpen(false);
+                      setLocation("/");
+                    }}
+                    className="flex items-center w-full px-4 py-2.5 text-[14px] font-medium text-red-600 hover:bg-red-50"
+                  >
+                    Sair
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <Link href="/login" className="flex items-center justify-center h-8 px-4 rounded-full bg-gray-100 text-[13px] font-semibold text-black transition hover:bg-gray-200">
+            Login
+          </Link>
+        )}
+      </div>
+    </header>
+  );
+}
+
+// --- Checkout Modal ---
+function CheckoutModal({ 
+  isOpen, 
+  onClose, 
+  amount 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  amount: number;
+}) {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [copied, setCopied] = useState(false);
+  
+  const [, setLocation] = useLocation();
+  const checkoutMutation = useCreateCheckout();
+
+  // Reset state when closed
+  useEffect(() => {
+    if (!isOpen) {
+      setStep(1);
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setErrorMsg("");
+      checkoutMutation.reset();
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    
+    if (password.length < 6) {
+      setErrorMsg("A senha deve ter no mínimo 6 caracteres.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrorMsg("As senhas não coincidem.");
+      return;
+    }
+
+    try {
+      await checkoutMutation.mutateAsync({
+        data: {
+          email,
+          password,
+          amount
+        }
+      });
+      setStep(2);
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || "Erro ao gerar cobrança. Tente novamente.");
+    }
+  };
+
+  const copyPix = () => {
+    if (checkoutMutation.data?.pix_copy_paste) {
+      navigator.clipboard.writeText(checkoutMutation.data.pix_copy_paste);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-200">
+        <button 
+          onClick={onClose}
+          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="px-6 pb-6 pt-8">
+          <div className="text-center mb-6">
+            <h2 className="text-[20px] font-bold text-black tracking-tight">
+              {step === 1 ? "Complete sua assinatura" : "Pagamento via Pix"}
+            </h2>
+            <p className="text-[14px] text-gray-500 mt-1">
+              {step === 1 ? `Plano selecionado: R$ ${amount.toFixed(2).replace('.', ',')}` : "Escaneie ou copie o código abaixo"}
+            </p>
+          </div>
+
+          {step === 1 ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-3">
+                <input
+                  type="email"
+                  required
+                  placeholder="Seu melhor e-mail"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] outline-none transition focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30]"
+                />
+                <input
+                  type="password"
+                  required
+                  placeholder="Crie uma senha (min. 6 caracteres)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] outline-none transition focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30]"
+                />
+                <input
+                  type="password"
+                  required
+                  placeholder="Confirme sua senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] outline-none transition focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30]"
+                />
+              </div>
+
+              {errorMsg && (
+                <div className="rounded-lg bg-red-50 p-3 text-[13px] text-red-600 font-medium">
+                  {errorMsg}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={checkoutMutation.isPending}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#23c55e] py-3.5 text-[15px] font-bold text-white transition hover:bg-[#1fa951] disabled:opacity-70 mt-2"
+              >
+                {checkoutMutation.isPending ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  "Gerar Pix"
+                )}
+              </button>
+            </form>
+          ) : (
+            <div className="flex flex-col items-center space-y-5">
+              {checkoutMutation.data?.pix_qr_code && (
+                <div className="rounded-xl border border-gray-100 p-2 shadow-sm bg-white">
+                  <img 
+                    src={`data:image/png;base64,${checkoutMutation.data.pix_qr_code}`} 
+                    alt="QR Code Pix" 
+                    className="w-48 h-48 object-contain"
+                  />
+                </div>
+              )}
+
+              <div className="w-full">
+                <p className="text-[12px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">
+                  Pix Copia e Cola
+                </p>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    readOnly 
+                    value={checkoutMutation.data?.pix_copy_paste || ""} 
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-[13px] text-gray-600 outline-none font-mono"
+                  />
+                  <button 
+                    onClick={copyPix}
+                    className="flex shrink-0 h-[42px] px-4 items-center justify-center gap-1.5 rounded-lg bg-[#e89c30] text-[13px] font-bold text-white hover:bg-[#d48a20] transition"
+                  >
+                    {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied ? "Copiado!" : "Copiar"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-[#f59b32]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-[14px] font-semibold">Aguardando pagamento...</span>
+              </div>
+
+              <div className="w-full pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => {
+                    onClose();
+                    setLocation("/login");
+                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white py-3 text-[14px] font-semibold text-black transition hover:bg-gray-50"
+                >
+                  Já paguei? Fazer login
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// PAGES
+// ============================================================================
+
+// --- Home Page ---
 const NOTIFICATIONS = [
   { id: 1, name: "Maria S.", action: "assinou seu perfil!", avatar: "MS" },
   { id: 2, name: "João P.", action: "curtiu uma foto sua", avatar: "JP" },
@@ -32,10 +363,19 @@ interface Toast {
   exiting: boolean;
 }
 
-export default function App() {
+function HomePage() {
   const [activeTab, setActiveTab] = useState<"fotos" | "videos">("fotos");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [notifIndex, setNotifIndex] = useState(0);
+
+  // Checkout modal state
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutAmount, setCheckoutAmount] = useState(21.87);
+
+  const openCheckout = (amount: number) => {
+    setCheckoutAmount(amount);
+    setIsCheckoutOpen(true);
+  };
 
   useEffect(() => {
     const show = () => {
@@ -63,23 +403,9 @@ export default function App() {
   }, [notifIndex]);
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between bg-white border-b border-gray-100 px-4">
-        <a href="/" className="text-[20px] font-extrabold tracking-[-0.08em] text-black">
-          privacy<span className="text-[#f59b32]">.</span>
-        </a>
-        <div className="flex items-center gap-3">
-          <button className="flex h-8 w-8 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-black">
-            <Bell className="h-[18px] w-[18px]" />
-          </button>
-          <div className="h-8 w-8 overflow-hidden rounded-full bg-gradient-to-br from-[#e89c30]/40 to-[#f5f5f5] flex items-center justify-center">
-            <span className="text-[10px] font-bold text-[#e89c30]">EF</span>
-          </div>
-        </div>
-      </header>
-
-      <main className="min-h-screen bg-white pt-12">
-        <div className="mx-auto flex max-w-[480px] flex-col gap-3 px-3 py-4 pb-12">
+    <>
+      <main className="min-h-screen bg-white pt-14 pb-12">
+        <div className="mx-auto flex max-w-[480px] flex-col gap-3 px-3 py-4">
 
           {/* Profile Card */}
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
@@ -161,7 +487,10 @@ export default function App() {
               <span className="text-[14px] font-semibold text-black">Economize 26%</span>
             </div>
 
-            <button className="w-full rounded-xl bg-[#e89c30] py-3.5 text-[15px] font-semibold text-black transition hover:bg-[#d48a20]">
+            <button 
+              onClick={() => openCheckout(21.87)}
+              className="w-full rounded-xl bg-[#e89c30] py-3.5 text-[15px] font-semibold text-black transition hover:bg-[#d48a20]"
+            >
               Assinar agora R$ 21,87
             </button>
 
@@ -169,7 +498,10 @@ export default function App() {
               Preço original <span className="line-through">R$ 29,55</span>
             </p>
 
-            <button className="w-full rounded-xl border border-gray-200 bg-white py-3.5 text-[15px] font-semibold text-black transition hover:bg-gray-50">
+            <button 
+              onClick={() => openCheckout(148.87)}
+              className="w-full rounded-xl border border-gray-200 bg-white py-3.5 text-[15px] font-semibold text-black transition hover:bg-gray-50"
+            >
               ★ Ligar agora para Milly?
             </button>
           </div>
@@ -182,13 +514,14 @@ export default function App() {
             </div>
             <div className="border-t border-gray-100">
               {[
-                { label: "1 Mês (26% off)", price: "R$ 21,87" },
-                { label: "3 meses (42% off)", price: "R$ 43,87" },
-                { label: "Vitalício (50% off)", price: "R$ 65,98" },
-                { label: "Chamada de vídeo (1h)", price: "R$ 148,87" },
+                { label: "1 Mês (26% off)", price: "R$ 21,87", amount: 21.87 },
+                { label: "3 meses (42% off)", price: "R$ 43,87", amount: 43.87 },
+                { label: "Vitalício (50% off)", price: "R$ 65,98", amount: 65.98 },
+                { label: "Chamada de vídeo (1h)", price: "R$ 148,87", amount: 148.87 },
               ].map((tier, i) => (
                 <button
                   key={i}
+                  onClick={() => openCheckout(tier.amount)}
                   className="flex w-full items-center justify-between px-4 py-3.5 transition hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
                 >
                   <span className="text-[15px] text-black">{tier.label}</span>
@@ -199,7 +532,7 @@ export default function App() {
           </div>
 
           {/* Content tabs */}
-          <div className="flex overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          <div className="flex overflow-hidden rounded-2xl border border-gray-200 bg-white mt-2">
             <button
               onClick={() => setActiveTab("fotos")}
               className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-3.5 text-[15px] font-semibold transition ${
@@ -227,10 +560,10 @@ export default function App() {
           <p className="px-1 text-[12px] text-gray-500">513 Postagens · 1.323 Mídias</p>
 
           {/* Post Card 1 */}
-          <PostCard likeCount={124} />
+          <PostCard likeCount={124} onUnlock={() => openCheckout(21.87)} />
 
           {/* Post Card 2 */}
-          <PostCard likeCount={341} />
+          <PostCard likeCount={341} onUnlock={() => openCheckout(21.87)} />
 
         </div>
       </main>
@@ -255,11 +588,17 @@ export default function App() {
           </div>
         ))}
       </div>
-    </div>
+
+      <CheckoutModal 
+        isOpen={isCheckoutOpen} 
+        onClose={() => setIsCheckoutOpen(false)} 
+        amount={checkoutAmount}
+      />
+    </>
   );
 }
 
-function PostCard({ likeCount }: { likeCount: number }) {
+function PostCard({ likeCount, onUnlock }: { likeCount: number; onUnlock: () => void }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
       {/* Post header */}
@@ -279,38 +618,237 @@ function PostCard({ likeCount }: { likeCount: number }) {
       </div>
 
       {/* Locked content */}
-      <div className="relative aspect-video w-full cursor-pointer">
+      <div className="relative aspect-video w-full cursor-pointer overflow-hidden group" onClick={onUnlock}>
         <img
           src={contentImg}
           alt="locked content"
-          className="absolute inset-0 h-full w-full object-cover blur-sm scale-105"
+          className="absolute inset-0 h-full w-full object-cover blur-md scale-110 transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 z-10 bg-black/50" />
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg">
-            <Lock className="h-5 w-5 text-white" />
+        <div className="absolute inset-0 z-10 bg-black/40 transition-colors group-hover:bg-black/30" />
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/40 shadow-xl transition-transform group-hover:scale-110">
+            <Lock className="h-6 w-6 text-white drop-shadow-md" />
           </div>
-          <span className="text-[15px] font-semibold text-white">Assinar para ver</span>
+          <span className="text-[15px] font-bold text-white tracking-wide drop-shadow-md">ASSINAR PARA VER</span>
         </div>
-        <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur-sm">
-          <Images className="h-3.5 w-3.5 text-[#e89c30]" />
-          <span className="text-[12px] font-semibold text-white">{likeCount}</span>
+        <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 backdrop-blur-sm border border-white/10">
+          <Images className="h-4 w-4 text-[#e89c30]" />
+          <span className="text-[13px] font-bold text-white">{likeCount}</span>
         </div>
       </div>
 
       {/* Post footer */}
       <div className="flex items-center gap-4 px-4 py-3">
-        <button className="flex items-center gap-1.5 text-gray-500 transition hover:text-gray-700">
+        <button className="flex items-center gap-1.5 text-gray-500 transition hover:text-red-500">
           <Heart className="h-[18px] w-[18px]" />
-          <span className="text-[15px]">{likeCount}</span>
+          <span className="text-[15px] font-medium">{likeCount}</span>
         </button>
-        <button className="flex items-center gap-1.5 text-gray-500 transition hover:text-gray-700">
+        <button className="flex items-center gap-1.5 text-gray-500 transition hover:text-gray-800">
           <MessageCircle className="h-[18px] w-[18px]" />
         </button>
-        <button className="ml-auto flex items-center gap-1.5 text-gray-500 transition hover:text-gray-700">
+        <button className="ml-auto flex items-center gap-1.5 text-gray-500 transition hover:text-[#e89c30]">
           <Bookmark className="h-[18px] w-[18px]" />
         </button>
       </div>
     </div>
+  );
+}
+
+// --- Login Page ---
+function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  
+  const loginMutation = useLogin();
+  const { login } = useAuth();
+  const [, setLocation] = useLocation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    try {
+      const result = await loginMutation.mutateAsync({
+        data: { email, password }
+      });
+      // @ts-ignore
+      if (result.token && result.user) {
+        // @ts-ignore
+        login(result.token, result.user);
+        setLocation("/members");
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || "E-mail ou senha incorretos.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 pt-14">
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="p-8">
+          <div className="text-center mb-8">
+            <Link href="/">
+              <div className="inline-block text-[28px] font-extrabold tracking-[-0.08em] text-black hover:opacity-80 transition cursor-pointer">
+                privacy<span className="text-[#f59b32]">.</span>
+              </div>
+            </Link>
+            <p className="text-gray-500 text-[14px] mt-2">Acesse sua área de membros</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">E-mail</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] outline-none transition focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30]"
+              />
+            </div>
+            <div>
+              <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">Senha</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] outline-none transition focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30]"
+              />
+            </div>
+
+            {errorMsg && (
+              <div className="rounded-lg bg-red-50 p-3 text-[13px] text-red-600 font-medium">
+                {errorMsg}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loginMutation.isPending}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-black py-3.5 text-[15px] font-bold text-white transition hover:bg-gray-800 disabled:opacity-70 mt-2"
+            >
+              {loginMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <Link href="/">
+              <div className="text-[14px] font-medium text-[#f59b32] hover:underline cursor-pointer">
+                Não tem conta? Assinar agora
+              </div>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Members Page ---
+function MembersPage() {
+  const { user, token } = useAuth();
+  
+  if (!token || !user) {
+    return <Redirect to="/login" />;
+  }
+
+  const { data, isLoading } = useGetMyAccess({
+    request: { headers: getAuthHeaders() }
+  });
+
+  return (
+    <div className="min-h-screen bg-gray-50 pt-14 pb-12">
+      <div className="mx-auto max-w-[480px] px-4 py-6">
+        
+        <div className="mb-6">
+          <h1 className="text-[24px] font-bold tracking-tight text-black">
+            Bem-vinda, {user.email.split('@')[0]}! ✨
+          </h1>
+          <p className="text-gray-500 text-[15px] mt-1">Sua área exclusiva de conteúdo.</p>
+        </div>
+
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-[#e89c30]" />
+            <p className="text-gray-500 text-sm mt-4">Carregando seus acessos...</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {data?.hasAccess ? (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-4 border-b border-gray-100 flex items-center gap-2 bg-gradient-to-r from-orange-50 to-amber-50">
+                  <Sparkles className="h-5 w-5 text-[#e89c30]" />
+                  <h2 className="text-[16px] font-bold text-black">Seus Acessos Ativos</h2>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {data.items?.map((item: any) => (
+                    <div key={item.id} className="p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-[15px] font-semibold text-black">
+                          Acesso: R$ {item.amount.toFixed(2).replace('.', ',')}
+                        </p>
+                        <p className="text-[13px] text-gray-500 mt-0.5">
+                          Liberado em {new Date(item.grantedAt).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-4 bg-gray-50 border-t border-gray-100">
+                  <p className="text-[14px] text-gray-600 text-center font-medium">
+                    Você tem acesso total ao conteúdo exclusivo.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
+                <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Lock className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-[18px] font-bold text-black mb-2">Nenhum acesso ativo</h3>
+                <p className="text-[15px] text-gray-500 mb-6">
+                  Aguardando confirmação do pagamento ou sua assinatura expirou.
+                </p>
+                <Link href="/">
+                  <button className="rounded-xl bg-black px-6 py-3 text-[14px] font-bold text-white transition hover:bg-gray-800">
+                    Voltar para início
+                  </button>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// APP ROOT
+// ============================================================================
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <div className="min-h-screen bg-white">
+          <Header />
+          <Switch>
+            <Route path="/" component={HomePage} />
+            <Route path="/login" component={LoginPage} />
+            <Route path="/members" component={MembersPage} />
+            <Route>
+              <Redirect to="/" />
+            </Route>
+          </Switch>
+        </div>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

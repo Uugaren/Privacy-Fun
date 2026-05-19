@@ -20,13 +20,16 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AccessResponse,
+  ApiError,
+  AuthSession,
   CheckoutInput,
   CheckoutResponse,
   HealthStatus,
+  LoginInput,
   NexusWebhookParams,
   NexusWebhookPayload,
-  WebhookAck,
-  WebhookError
+  WebhookAck
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -50,7 +53,6 @@ export const getHealthCheckUrl = () => {
 }
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const healthCheck = async ( options?: RequestInit): Promise<HealthStatus> => {
@@ -128,7 +130,6 @@ export const getCreateCheckoutUrl = () => {
 }
 
 /**
- * Initiates a Pix payment order and returns QR code data for the customer
  * @summary Create a Pix checkout via Nexus Pag
  */
 export const createCheckout = async (checkoutInput: CheckoutInput, options?: RequestInit): Promise<CheckoutResponse> => {
@@ -146,7 +147,7 @@ export const createCheckout = async (checkoutInput: CheckoutInput, options?: Req
 
 
 
-export const getCreateCheckoutMutationOptions = <TError = ErrorType<WebhookError>,
+export const getCreateCheckoutMutationOptions = <TError = ErrorType<ApiError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,{data: BodyType<CheckoutInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,{data: BodyType<CheckoutInput>}, TContext> => {
 
@@ -175,12 +176,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createCheckout>>>
     export type CreateCheckoutMutationBody = BodyType<CheckoutInput>
-    export type CreateCheckoutMutationError = ErrorType<WebhookError>
+    export type CreateCheckoutMutationError = ErrorType<ApiError>
 
     /**
  * @summary Create a Pix checkout via Nexus Pag
  */
-export const useCreateCheckout = <TError = ErrorType<WebhookError>,
+export const useCreateCheckout = <TError = ErrorType<ApiError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,{data: BodyType<CheckoutInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createCheckout>>,
@@ -190,6 +191,154 @@ export const useCreateCheckout = <TError = ErrorType<WebhookError>,
       > => {
       return useMutation(getCreateCheckoutMutationOptions(options));
     }
+
+export const getLoginUrl = () => {
+
+
+
+
+  return `/api/auth/login`
+}
+
+/**
+ * @summary Login with email and password
+ */
+export const login = async (loginInput: LoginInput, options?: RequestInit): Promise<AuthSession> => {
+
+  return customFetch<AuthSession>(getLoginUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      loginInput,)
+  }
+);}
+
+
+
+
+export const getLoginMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof login>>, TError,{data: BodyType<LoginInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof login>>, TError,{data: BodyType<LoginInput>}, TContext> => {
+
+const mutationKey = ['login'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof login>>, {data: BodyType<LoginInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  login(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LoginMutationResult = NonNullable<Awaited<ReturnType<typeof login>>>
+    export type LoginMutationBody = BodyType<LoginInput>
+    export type LoginMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Login with email and password
+ */
+export const useLogin = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof login>>, TError,{data: BodyType<LoginInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof login>>,
+        TError,
+        {data: BodyType<LoginInput>},
+        TContext
+      > => {
+      return useMutation(getLoginMutationOptions(options));
+    }
+
+export const getGetMyAccessUrl = () => {
+
+
+
+
+  return `/api/me/access`
+}
+
+/**
+ * @summary Get authenticated user access list
+ */
+export const getMyAccess = async ( options?: RequestInit): Promise<AccessResponse> => {
+
+  return customFetch<AccessResponse>(getGetMyAccessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyAccessQueryKey = () => {
+    return [
+    `/api/me/access`
+    ] as const;
+    }
+
+
+export const getGetMyAccessQueryOptions = <TData = Awaited<ReturnType<typeof getMyAccess>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyAccessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAccess>>> = ({ signal }) => getMyAccess({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyAccess>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAccess>>>
+export type GetMyAccessQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get authenticated user access list
+ */
+
+export function useGetMyAccess<TData = Awaited<ReturnType<typeof getMyAccess>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyAccessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getNexusWebhookUrl = (params?: NexusWebhookParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -207,7 +356,6 @@ export const getNexusWebhookUrl = (params?: NexusWebhookParams,) => {
 }
 
 /**
- * Receives payment status notifications from Nexus Pag
  * @summary Nexus Pag payment webhook
  */
 export const nexusWebhook = async (nexusWebhookPayload: NexusWebhookPayload,
@@ -226,7 +374,7 @@ export const nexusWebhook = async (nexusWebhookPayload: NexusWebhookPayload,
 
 
 
-export const getNexusWebhookMutationOptions = <TError = ErrorType<WebhookError>,
+export const getNexusWebhookMutationOptions = <TError = ErrorType<ApiError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof nexusWebhook>>, TError,{data: BodyType<NexusWebhookPayload>;params?: NexusWebhookParams}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof nexusWebhook>>, TError,{data: BodyType<NexusWebhookPayload>;params?: NexusWebhookParams}, TContext> => {
 
@@ -255,12 +403,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type NexusWebhookMutationResult = NonNullable<Awaited<ReturnType<typeof nexusWebhook>>>
     export type NexusWebhookMutationBody = BodyType<NexusWebhookPayload>
-    export type NexusWebhookMutationError = ErrorType<WebhookError>
+    export type NexusWebhookMutationError = ErrorType<ApiError>
 
     /**
  * @summary Nexus Pag payment webhook
  */
-export const useNexusWebhook = <TError = ErrorType<WebhookError>,
+export const useNexusWebhook = <TError = ErrorType<ApiError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof nexusWebhook>>, TError,{data: BodyType<NexusWebhookPayload>;params?: NexusWebhookParams}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof nexusWebhook>>,

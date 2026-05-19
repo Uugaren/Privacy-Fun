@@ -5,7 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AccessItem } from './accessItem';
 
-export interface WebhookError {
-  error: string;
+export interface AccessResponse {
+  hasAccess: boolean;
+  items: AccessItem[];
 }

@@ -6,6 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type NexusWebhookParams = {
-token?: string;
-};
+export interface ApiError {
+  error: string;
+}

@@ -6,19 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-/**
- * Dynamic payload from Nexus Pag. Fields vary by event type.
- */
 export interface NexusWebhookPayload {
-  /** Nexus Pag order/transaction ID */
   id?: string;
-  /** Payment status (e.g. pago, approved, pending, failed) */
   status?: string;
-  /** Customer email */
   email?: string;
-  /** Payment amount in cents */
   amount?: number;
-  /** ISO timestamp from Nexus Pag */
   created_at?: string;
   [key: string]: unknown;
  }

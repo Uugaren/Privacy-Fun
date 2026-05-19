@@ -6,10 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CheckoutInput {
+export interface LoginInput {
   email: string;
-  /** Password to create the account (min 6 chars) */
   password: string;
-  /** Payment amount in reais (e.g. 21.87) */
-  amount: number | string;
 }

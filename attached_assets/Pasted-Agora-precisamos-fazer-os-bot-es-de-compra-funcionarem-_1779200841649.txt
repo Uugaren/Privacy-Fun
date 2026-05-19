@@ -1,0 +1,24 @@
+Agora precisamos fazer os botões de compra funcionarem e implementar o sistema completo de autenticação (cadastro no checkout + login + área de membros).
+
+Por favor, implemente as seguintes etapas no projeto:
+
+1. **Atualizar o Banco de Dados (`lib/db/src/schema/index.ts` ou equivalentes)**:
+   - Certifique-se de que a tabela `users` possui os campos: `email` (unique), `password_hash` (string para salvar a senha criptografada), e `role` (default: 'customer').
+
+2. **Ajustar as Especificações da API (`lib/api-spec/openapi.yaml`)**:
+   - Atualize a rota `POST /checkout` para receber também o campo `password` no payload de entrada.
+   - Adicione uma nova rota `POST /auth/login` que aceita `email` e `password` e retorna um token JWT de sessão, além dos dados básicos do usuário.
+   - Adicione uma nova rota protegida `GET /me/access` que verifica o token JWT e retorna a lista de conteúdos que aquele usuário tem direito de acessar (com base na tabela `userAccess`).
+
+3. **Implementar as Rotas no Backend (`artifacts/api-server/src/routes/`)**:
+   - **No Checkout (`checkout.ts`)**: Antes de chamar a Nexus Pag, o backend deve verificar se o e-mail já existe. Se não existir, crie o usuário salvando a senha de forma segura com criptografia (use `bcryptjs` ou `argon2`, o que estiver disponível). O pedido é criado como 'pending'.
+   - **Criar o Auth Router (`auth.ts`)**: Implemente a lógica de login verificando a senha com hash e gerando o JWT.
+   - **No Webhook (`webhook.ts`)**: Quando o pagamento for confirmado, mude o status da ordem e libere o registro de acesso associado ao ID do usuário.
+
+4. **Amarrar o Frontend (`artifacts/privacy-page/src/App.tsx`)**:
+   - Faça os botões de compra abrirem o modal de checkout.
+   - No formulário do modal, adicione os campos: **E-mail**, **Senha** e **Confirmar Senha**.
+   - Ao enviar o formulário, chame o hook `useCreateCheckout` passando o email, o password e o valor. Exiba o QR Code e o código Pix Copia e Cola retornados.
+   - Crie uma tela simples de `/login` e uma rota protegida de Área de Membros que só renderiza os conteúdos se o usuário tiver um token JWT válido salvo no `localStorage`.
+
+Após criar e atualizar os arquivos, execute o `pnpm run build` para garantir que o projeto compile sem erros.

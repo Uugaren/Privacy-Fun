@@ -9,7 +9,6 @@ import * as zod from 'zod';
 
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -18,39 +17,69 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * Initiates a Pix payment order and returns QR code data for the customer
  * @summary Create a Pix checkout via Nexus Pag
  */
 export const CreateCheckoutBody = zod.object({
-  "email": zod.string().describe('Customer email address'),
-  "amount": zod.union([zod.number(),zod.string()]).describe('Payment amount in reais (e.g. 21.87 = R$21,87)')
+  "email": zod.string(),
+  "password": zod.string().describe('Password to create the account (min 6 chars)'),
+  "amount": zod.union([zod.number(),zod.string()]).describe('Payment amount in reais (e.g. 21.87)')
 })
 
 export const CreateCheckoutResponse = zod.object({
-  "order_id": zod.string().describe('Internal order ID (UUID)'),
-  "status": zod.string().describe('Initial order status from Nexus Pag'),
-  "pix_copy_paste": zod.string().describe('Pix copia e cola code'),
-  "pix_qr_code": zod.string().describe('QR Code image in base64'),
-  "expires_at": zod.string().optional().describe('Expiration datetime ISO 8601'),
-  "amount": zod.number().optional().describe('Confirmed amount in reais')
+  "order_id": zod.string(),
+  "status": zod.string(),
+  "pix_copy_paste": zod.string(),
+  "pix_qr_code": zod.string(),
+  "expires_at": zod.string().optional(),
+  "amount": zod.number().optional()
 })
 
 
 /**
- * Receives payment status notifications from Nexus Pag
+ * @summary Login with email and password
+ */
+export const LoginBody = zod.object({
+  "email": zod.string(),
+  "password": zod.string()
+})
+
+export const LoginResponse = zod.object({
+  "token": zod.string().describe('JWT token'),
+  "user": zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "role": zod.string()
+})
+})
+
+
+/**
+ * @summary Get authenticated user access list
+ */
+export const GetMyAccessResponse = zod.object({
+  "hasAccess": zod.boolean(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "externalOrderId": zod.string(),
+  "grantedAt": zod.string()
+}))
+})
+
+
+/**
  * @summary Nexus Pag payment webhook
  */
 export const NexusWebhookQueryParams = zod.object({
-  "token": zod.coerce.string().optional().describe('Integration token sent by Nexus Pag as query param')
+  "token": zod.coerce.string().optional()
 })
 
 export const NexusWebhookBody = zod.object({
-  "id": zod.string().optional().describe('Nexus Pag order\/transaction ID'),
-  "status": zod.string().optional().describe('Payment status (e.g. pago, approved, pending, failed)'),
-  "email": zod.string().optional().describe('Customer email'),
-  "amount": zod.number().optional().describe('Payment amount in cents'),
-  "created_at": zod.string().optional().describe('ISO timestamp from Nexus Pag')
-}).describe('Dynamic payload from Nexus Pag. Fields vary by event type.')
+  "id": zod.string().optional(),
+  "status": zod.string().optional(),
+  "email": zod.string().optional(),
+  "amount": zod.number().optional(),
+  "created_at": zod.string().optional()
+})
 
 export const NexusWebhookResponse = zod.object({
   "received": zod.boolean(),

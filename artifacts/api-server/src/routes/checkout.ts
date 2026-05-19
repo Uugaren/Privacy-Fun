@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import crypto from "node:crypto";
-import { db, ordersTable } from "@workspace/db";
+import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
+import { db, ordersTable, usersTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -29,23 +31,52 @@ router.post("/checkout", async (req, res) => {
     return;
   }
 
-  const { email, amount } = req.body as { email?: unknown; amount?: unknown };
+  const { email, password, amount } = req.body as {
+    email?: unknown;
+    password?: unknown;
+    amount?: unknown;
+  };
 
   if (!email || typeof email !== "string" || !email.includes("@")) {
-    res.status(400).json({ error: "Invalid or missing email" });
+    res.status(400).json({ error: "Email inválido ou ausente" });
+    return;
+  }
+
+  if (!password || typeof password !== "string" || password.length < 6) {
+    res.status(400).json({ error: "Senha deve ter no mínimo 6 caracteres" });
     return;
   }
 
   const parsedAmount = Number(amount);
   if (!amount || isNaN(parsedAmount) || parsedAmount < 1) {
-    res.status(400).json({ error: "Invalid amount — minimum is R$ 1.00" });
+    res.status(400).json({ error: "Valor inválido — mínimo R$ 1,00" });
     return;
+  }
+
+  const normalizedEmail = email.toLowerCase();
+
+  const [existingUser] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.email, normalizedEmail))
+    .limit(1);
+
+  if (!existingUser) {
+    const passwordHash = await bcrypt.hash(password, 12);
+    await db.insert(usersTable).values({
+      email: normalizedEmail,
+      passwordHash,
+      role: "customer",
+    });
+    req.log.info({ email: normalizedEmail }, "checkout: new user created");
+  } else {
+    req.log.info({ email: normalizedEmail }, "checkout: existing user, skipping creation");
   }
 
   const externalId = crypto.randomUUID();
   const webhookUrl = `https://privacy-fun--arthur007rocha.replit.app/api/payments/nexus-webhook?token=${apiKey}`;
 
-  req.log.info({ email, amount: parsedAmount, externalId }, "checkout: initiating Nexus Pag Pix creation");
+  req.log.info({ email: normalizedEmail, amount: parsedAmount, externalId }, "checkout: initiating Nexus Pag Pix");
 
   let nexusData: NexusPixResponse;
 
@@ -58,25 +89,25 @@ router.post("/checkout", async (req, res) => {
       },
       body: JSON.stringify({
         amount: parsedAmount,
-        description: `Assinatura Privacy - ${email}`,
+        description: `Assinatura Privacy - ${normalizedEmail}`,
         external_id: externalId,
         webhook_url: webhookUrl,
         expiration: 1800,
       }),
     });
 
-    const raw = await nexusRes.json() as NexusPixResponse;
+    const raw = (await nexusRes.json()) as NexusPixResponse;
 
     if (!nexusRes.ok || !raw.success) {
       req.log.error({ status: nexusRes.status, body: raw }, "checkout: Nexus Pag returned error");
-      res.status(502).json({ error: "Payment gateway error — could not generate Pix" });
+      res.status(502).json({ error: "Erro no gateway de pagamento — não foi possível gerar o Pix" });
       return;
     }
 
     nexusData = raw;
   } catch (err) {
     req.log.error({ err }, "checkout: network error calling Nexus Pag");
-    res.status(502).json({ error: "Failed to reach payment gateway" });
+    res.status(502).json({ error: "Falha ao conectar com o gateway de pagamento" });
     return;
   }
 
@@ -85,7 +116,7 @@ router.post("/checkout", async (req, res) => {
   try {
     await db.insert(ordersTable).values({
       externalId,
-      email,
+      email: normalizedEmail,
       status: "pending",
       amount: Math.round(parsedAmount * 100),
       rawPayload: JSON.stringify(transaction),
@@ -93,7 +124,7 @@ router.post("/checkout", async (req, res) => {
 
     req.log.info({ externalId, nexusId: transaction.id }, "checkout: order inserted as pending");
   } catch (err) {
-    req.log.error({ err, externalId }, "checkout: failed to insert order in database");
+    req.log.error({ err, externalId }, "checkout: failed to insert order");
   }
 
   res.json({

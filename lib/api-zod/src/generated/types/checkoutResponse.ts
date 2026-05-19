@@ -7,16 +7,10 @@
  */
 
 export interface CheckoutResponse {
-  /** Internal order ID (UUID) */
   order_id: string;
-  /** Initial order status from Nexus Pag */
   status: string;
-  /** Pix copia e cola code */
   pix_copy_paste: string;
-  /** QR Code image in base64 */
   pix_qr_code: string;
-  /** Expiration datetime ISO 8601 */
   expires_at?: string;
-  /** Confirmed amount in reais */
   amount?: number;
 }
