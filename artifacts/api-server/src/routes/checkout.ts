@@ -127,11 +127,16 @@ router.post("/checkout", async (req, res) => {
     req.log.error({ err, externalId }, "checkout: failed to insert order");
   }
 
+  // Normalize qr_code_base64: strip any data URI prefix so the client always
+  // receives a raw base64 string it can prefix with data:image/png;base64,
+  const rawQr = transaction.qr_code_base64 ?? "";
+  const pureBase64 = rawQr.replace(/^data:[^;]+;base64,/, "");
+
   res.json({
     order_id: externalId,
     status: transaction.status,
     pix_copy_paste: transaction.pix_copia_cola,
-    pix_qr_code: transaction.qr_code_base64,
+    pix_qr_code: pureBase64,
     expires_at: transaction.expires_at,
     amount: transaction.amount,
   });

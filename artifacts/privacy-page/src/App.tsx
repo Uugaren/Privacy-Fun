@@ -289,10 +289,17 @@ function CheckoutModal({
             <div className="flex flex-col items-center space-y-5">
               {checkoutMutation.data?.pix_qr_code && (
                 <div className="rounded-xl border border-gray-100 p-2 shadow-sm bg-white">
-                  <img 
-                    src={`data:image/png;base64,${checkoutMutation.data.pix_qr_code}`} 
-                    alt="QR Code Pix" 
+                  <img
+                    src={
+                      checkoutMutation.data.pix_qr_code.startsWith("data:")
+                        ? checkoutMutation.data.pix_qr_code
+                        : `data:image/png;base64,${checkoutMutation.data.pix_qr_code}`
+                    }
+                    alt="QR Code Pix"
                     className="w-48 h-48 object-contain"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                    }}
                   />
                 </div>
               )}
