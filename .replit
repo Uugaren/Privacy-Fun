@@ -34,4 +34,4 @@ externalPort = 3000
 [userenv]
 
 [userenv.shared]
-NEXUS_WEBHOOK_SECRET = "nxps_1a47bdf29771ea4b39e5eeb5d8ae003779942626ee3fe1df999c348e31e1c69b"
+NEXUS_WEBHOOK_SECRET = "nxp_live_37e47bbfcf7240bebafed86064186507365f4ef608afc14e0d410455784a92f0"
