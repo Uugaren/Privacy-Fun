@@ -11,9 +11,7 @@ export interface HealthStatus {
 
 export interface CheckoutInput {
   email: string;
-  /** Password to create the account (min 6 chars) */
   password: string;
-  /** Payment amount in reais (e.g. 21.87) */
   amount: number | string;
 }
 
@@ -38,7 +36,6 @@ export interface UserProfile {
 }
 
 export interface AuthSession {
-  /** JWT token */
   token: string;
   user: UserProfile;
 }
@@ -66,6 +63,78 @@ export interface NexusWebhookPayload {
 export interface WebhookAck {
   received: boolean;
   processed: boolean;
+}
+
+export type CreateContentInputType = typeof CreateContentInputType[keyof typeof CreateContentInputType];
+
+
+export const CreateContentInputType = {
+  album: 'album',
+  video: 'video',
+} as const;
+
+export interface CreateContentInput {
+  title: string;
+  description?: string;
+  type?: CreateContentInputType;
+  price?: number;
+  teaserUrl?: string;
+  privateFolderKey?: string;
+}
+
+export interface ContentRecord {
+  id: number;
+  title: string;
+  description?: string | null;
+  type: string;
+  price?: number | null;
+  teaserUrl?: string | null;
+  privateFolderKey?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContentPublic {
+  id: number;
+  title: string;
+  description?: string | null;
+  type: string;
+  price?: number | null;
+  teaserUrl?: string | null;
+  createdAt: string;
+}
+
+export interface SecureStreamResponse {
+  contentId: number;
+  streamUrl?: string | null;
+  expiresAt: string;
+  signature: string;
+}
+
+export interface OrderRecord {
+  id: number;
+  externalId: string;
+  email: string;
+  status: string;
+  amount?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserRecord {
+  id: number;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
+export interface AdminStats {
+  totalOrders: number;
+  paidOrders: number;
+  totalRevenue: number;
+  totalUsers: number;
+  totalContents: number;
+  totalAccesses: number;
 }
 
 export interface ApiError {

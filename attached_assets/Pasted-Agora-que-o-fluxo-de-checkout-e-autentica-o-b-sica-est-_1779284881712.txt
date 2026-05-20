@@ -1,0 +1,22 @@
+Agora que o fluxo de checkout e autenticação básica estão encaminhados, precisamos criar as rotas de gerenciamento e entrega de conteúdos, separando o acesso entre Administrador e Comprador (Cliente).
+
+Por favor, implemente as seguintes rotas e lógicas no projeto:
+
+1. **Atualizar a Especificação da API (`lib/api-spec/openapi.yaml`)**:
+   - Adicione a rota `POST /admin/contents`: Exclusiva para administradores criarem novos conteúdos (título, descrição, tipo ['album', 'video'], preço, teaserUrl e privateFolderKey).
+   - Adicione a rota `GET /contents`: Para os usuários listarem os conteúdos disponíveis na plataforma.
+   - Adicione a rota `GET /contents/{id}/secure-stream`: Para obter o link de visualização segura e temporária de um conteúdo específico.
+
+2. **Criar o Middleware de Autenticação e Autorização (`artifacts/api-server/src/middlewares/auth.ts`)**:
+   - Crie um middleware para verificar o token JWT enviado no Header `Authorization`.
+   - Adicione uma verificação de perfil: se a rota exigir perfil 'admin', o middleware deve barrar usuários com o papel 'customer' retornando erro 403 (Forbidden).
+
+3. **Criar os Controllers de Conteúdo (`artifacts/api-server/src/routes/contents.ts`)**:
+   - **`POST /admin/contents`**: Protegido com o middleware de admin. Ele deve inserir o novo registro na tabela `contents` usando o Drizzle ORM.
+   - **`GET /contents`**: Aberto ou autenticado. Retorna os metadados dos conteúdos (sem expor o caminho real trancado no storage).
+   - **`GET /contents/:id/secure-stream`**: Protegido com o middleware de autenticação. Deve verificar na tabela `userAccess` se o usuário logado possui direito a esse conteúdo (ou se ele é o administrador). Se sim, gera uma URL temporária e expiratória do Storage e a retorna.
+
+4. **Conectar as novas rotas no Router Principal (`artifacts/api-server/src/routes/index.ts`)**:
+   - Importe e registre o novo router de conteúdos.
+
+Ao finalizar, execute os comandos de build e codegen para atualizar os schemas e tipagens do ecossistema.

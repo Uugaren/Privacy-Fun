@@ -8,8 +8,6 @@
 
 export interface CheckoutInput {
   email: string;
-  /** Password to create the account (min 6 chars) */
   password: string;
-  /** Payment amount in reais (e.g. 21.87) */
   amount: number | string;
 }

@@ -21,8 +21,8 @@ export const HealthCheckResponse = zod.object({
  */
 export const CreateCheckoutBody = zod.object({
   "email": zod.string(),
-  "password": zod.string().describe('Password to create the account (min 6 chars)'),
-  "amount": zod.union([zod.number(),zod.string()]).describe('Payment amount in reais (e.g. 21.87)')
+  "password": zod.string(),
+  "amount": zod.union([zod.number(),zod.string()])
 })
 
 export const CreateCheckoutResponse = zod.object({
@@ -44,7 +44,7 @@ export const LoginBody = zod.object({
 })
 
 export const LoginResponse = zod.object({
-  "token": zod.string().describe('JWT token'),
+  "token": zod.string(),
   "user": zod.object({
   "id": zod.number(),
   "email": zod.string(),
@@ -84,6 +84,89 @@ export const NexusWebhookBody = zod.object({
 export const NexusWebhookResponse = zod.object({
   "received": zod.boolean(),
   "processed": zod.boolean()
+})
+
+
+/**
+ * @summary List all available contents (public metadata)
+ */
+export const ListContentsResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "type": zod.string(),
+  "price": zod.number().nullish(),
+  "teaserUrl": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListContentsResponse = zod.array(ListContentsResponseItem)
+
+
+/**
+ * @summary Get a time-limited secure stream URL for a content item
+ */
+export const GetSecureStreamParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetSecureStreamResponse = zod.object({
+  "contentId": zod.number(),
+  "streamUrl": zod.string().nullish(),
+  "expiresAt": zod.string(),
+  "signature": zod.string()
+})
+
+
+/**
+ * @summary Create a new content entry (admin only)
+ */
+export const CreateContentBody = zod.object({
+  "title": zod.string(),
+  "description": zod.string().optional(),
+  "type": zod.enum(['album', 'video']).optional(),
+  "price": zod.number().optional(),
+  "teaserUrl": zod.string().optional(),
+  "privateFolderKey": zod.string().optional()
+})
+
+
+/**
+ * @summary List all orders (admin only)
+ */
+export const ListAdminOrdersResponseItem = zod.object({
+  "id": zod.number(),
+  "externalId": zod.string(),
+  "email": zod.string(),
+  "status": zod.string(),
+  "amount": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListAdminOrdersResponse = zod.array(ListAdminOrdersResponseItem)
+
+
+/**
+ * @summary List all users (admin only)
+ */
+export const ListAdminUsersResponseItem = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "role": zod.string(),
+  "createdAt": zod.string()
+})
+export const ListAdminUsersResponse = zod.array(ListAdminUsersResponseItem)
+
+
+/**
+ * @summary Get dashboard summary stats (admin only)
+ */
+export const GetAdminStatsResponse = zod.object({
+  "totalOrders": zod.number(),
+  "paidOrders": zod.number(),
+  "totalRevenue": zod.number(),
+  "totalUsers": zod.number(),
+  "totalContents": zod.number(),
+  "totalAccesses": zod.number()
 })
 
 

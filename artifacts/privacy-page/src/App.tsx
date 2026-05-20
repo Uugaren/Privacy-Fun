@@ -17,9 +17,31 @@ import {
   Loader2,
   Copy,
   CheckCircle2,
-  ChevronDown
+  ChevronDown,
+  LayoutDashboard,
+  ShoppingCart,
+  Users,
+  Film,
+  TrendingUp,
+  Plus,
+  Shield,
+  BadgeCheck,
+  AlertCircle,
 } from "lucide-react";
-import { useCreateCheckout, useLogin, useGetMyAccess } from "@workspace/api-client-react";
+import {
+  useCreateCheckout,
+  useLogin,
+  useGetMyAccess,
+  useGetAdminStats,
+  useListAdminOrders,
+  useListAdminUsers,
+  useListContents,
+  useCreateContent,
+  setAuthTokenGetter,
+} from "@workspace/api-client-react";
+
+// Register global token getter so every API call automatically includes auth
+setAuthTokenGetter(() => localStorage.getItem("privacy_token"));
 
 import profileImg from "./assets/profile-img.png";
 import coverImg from "./assets/cover-img.png";
@@ -124,6 +146,14 @@ function Header() {
                       Área de Membros
                     </div>
                   </Link>
+                  {user?.role === "admin" && (
+                    <Link href="/admin" onClick={() => setMenuOpen(false)}>
+                      <div className="flex items-center gap-2 w-full px-4 py-2.5 text-[14px] font-medium text-[#e89c30] hover:bg-orange-50">
+                        <Shield className="h-4 w-4" />
+                        Painel Admin
+                      </div>
+                    </Link>
+                  )}
                   <button 
                     onClick={() => {
                       logout();
@@ -760,9 +790,7 @@ function MembersPage() {
     return <Redirect to="/login" />;
   }
 
-  const { data, isLoading } = useGetMyAccess({
-    request: { headers: getAuthHeaders() }
-  });
+  const { data, isLoading } = useGetMyAccess();
 
   return (
     <div className="min-h-screen bg-gray-50 pt-14 pb-12">
@@ -837,6 +865,481 @@ function MembersPage() {
 }
 
 // ============================================================================
+// ADMIN PAGE
+// ============================================================================
+
+type AdminTab = "dashboard" | "orders" | "users" | "contents";
+
+function AdminPage() {
+  const { user, token } = useAuth();
+  const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
+  const [showNewContent, setShowNewContent] = useState(false);
+
+  if (!token || !user) return <Redirect to="/login" />;
+  if (user.role !== "admin") return <Redirect to="/members" />;
+
+  return (
+    <div className="min-h-screen bg-gray-50 pt-14">
+      {/* Admin top bar */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-2">
+        <Shield className="h-4 w-4 text-[#e89c30]" />
+        <span className="text-[14px] font-bold text-black">Painel Administrativo</span>
+        <span className="ml-auto text-[12px] text-gray-400 font-medium">{user.email}</span>
+      </div>
+
+      {/* Tabs nav */}
+      <div className="bg-white border-b border-gray-100 px-4 overflow-x-auto">
+        <div className="flex gap-1 min-w-max">
+          {(
+            [
+              { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+              { id: "orders", label: "Pedidos", icon: ShoppingCart },
+              { id: "users", label: "Usuários", icon: Users },
+              { id: "contents", label: "Conteúdos", icon: Film },
+            ] as { id: AdminTab; label: string; icon: React.ElementType }[]
+          ).map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`flex items-center gap-1.5 px-4 py-3.5 text-[14px] font-semibold border-b-2 transition whitespace-nowrap ${
+                activeTab === id
+                  ? "border-[#e89c30] text-[#e89c30]"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-3xl px-4 py-6">
+        {activeTab === "dashboard" && <AdminDashboard />}
+        {activeTab === "orders" && <AdminOrders />}
+        {activeTab === "users" && <AdminUsers />}
+        {activeTab === "contents" && (
+          <AdminContents showNew={showNewContent} setShowNew={setShowNewContent} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- Admin Dashboard ---
+function AdminDashboard() {
+  const { data, isLoading } = useGetAdminStats();
+
+  const cards = [
+    {
+      label: "Total de Pedidos",
+      value: data?.totalOrders ?? 0,
+      sub: `${data?.paidOrders ?? 0} pagos`,
+      icon: ShoppingCart,
+      color: "text-blue-500",
+      bg: "bg-blue-50",
+    },
+    {
+      label: "Receita Total",
+      value: `R$ ${((data?.totalRevenue ?? 0) / 100).toFixed(2).replace(".", ",")}`,
+      sub: "apenas pagos",
+      icon: TrendingUp,
+      color: "text-green-600",
+      bg: "bg-green-50",
+    },
+    {
+      label: "Usuários",
+      value: data?.totalUsers ?? 0,
+      sub: `${data?.totalAccesses ?? 0} com acesso ativo`,
+      icon: Users,
+      color: "text-purple-500",
+      bg: "bg-purple-50",
+    },
+    {
+      label: "Conteúdos",
+      value: data?.totalContents ?? 0,
+      sub: "cadastrados",
+      icon: Film,
+      color: "text-[#e89c30]",
+      bg: "bg-orange-50",
+    },
+  ];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-[#e89c30]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-[20px] font-bold text-black tracking-tight">Visão Geral</h2>
+      <div className="grid grid-cols-2 gap-3">
+        {cards.map((card) => (
+          <div key={card.label} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-2">
+            <div className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${card.bg}`}>
+              <card.icon className={`h-5 w-5 ${card.color}`} />
+            </div>
+            <p className="text-[22px] font-bold text-black leading-none">{card.value}</p>
+            <p className="text-[12px] font-semibold text-gray-500 leading-tight">{card.label}</p>
+            <p className="text-[11px] text-gray-400">{card.sub}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- Admin Orders ---
+function AdminOrders() {
+  const { data, isLoading } = useListAdminOrders();
+
+  const statusColor: Record<string, string> = {
+    paid: "bg-green-100 text-green-700",
+    pending: "bg-yellow-100 text-yellow-700",
+    expired: "bg-gray-100 text-gray-500",
+    failed: "bg-red-100 text-red-600",
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-[#e89c30]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-[20px] font-bold text-black tracking-tight">Pedidos</h2>
+        <span className="text-[13px] text-gray-500">{data?.length ?? 0} total</span>
+      </div>
+      <div className="space-y-2">
+        {!data?.length ? (
+          <EmptyState icon={ShoppingCart} message="Nenhum pedido encontrado." />
+        ) : (
+          data.map((order) => (
+            <div key={order.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-semibold text-black truncate">{order.email}</p>
+                  <p className="text-[12px] text-gray-400 font-mono mt-0.5 truncate">{order.externalId}</p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize ${
+                    statusColor[order.status] ?? "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {order.status}
+                </span>
+              </div>
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                <span className="text-[15px] font-bold text-black">
+                  R$ {((order.amount ?? 0) / 100).toFixed(2).replace(".", ",")}
+                </span>
+                <span className="text-[12px] text-gray-400">
+                  {new Date(order.createdAt).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- Admin Users ---
+function AdminUsers() {
+  const { data, isLoading } = useListAdminUsers();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-[#e89c30]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-[20px] font-bold text-black tracking-tight">Usuários</h2>
+        <span className="text-[13px] text-gray-500">{data?.length ?? 0} total</span>
+      </div>
+      <div className="space-y-2">
+        {!data?.length ? (
+          <EmptyState icon={Users} message="Nenhum usuário cadastrado." />
+        ) : (
+          data.map((u) => (
+            <div key={u.id} className="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-3">
+              <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-[#e89c30]/70 to-[#f5c842]/70 flex items-center justify-center text-white text-[13px] font-bold uppercase shadow-sm">
+                {u.email.substring(0, 2)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-semibold text-black truncate">{u.email}</p>
+                <p className="text-[12px] text-gray-400 mt-0.5">
+                  Desde {new Date(u.createdAt).toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                  u.role === "admin"
+                    ? "bg-orange-100 text-[#e89c30]"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {u.role}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- Admin Contents ---
+function AdminContents({
+  showNew,
+  setShowNew,
+}: {
+  showNew: boolean;
+  setShowNew: (v: boolean) => void;
+}) {
+  const { data, isLoading, refetch } = useListContents();
+  const createMutation = useCreateContent();
+
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    type: "album",
+    price: "",
+    teaserUrl: "",
+    privateFolderKey: "",
+  });
+  const [formError, setFormError] = useState("");
+  const [formSuccess, setFormSuccess] = useState(false);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+    setFormSuccess(false);
+    try {
+      await createMutation.mutateAsync({
+        data: {
+          title: form.title,
+          description: form.description || undefined,
+          type: form.type as "album" | "video",
+          price: form.price ? Number(form.price) : undefined,
+          teaserUrl: form.teaserUrl || undefined,
+          privateFolderKey: form.privateFolderKey || undefined,
+        },
+      });
+      setFormSuccess(true);
+      setForm({ title: "", description: "", type: "album", price: "", teaserUrl: "", privateFolderKey: "" });
+      refetch();
+      setTimeout(() => {
+        setFormSuccess(false);
+        setShowNew(false);
+      }, 1500);
+    } catch {
+      setFormError("Erro ao criar conteúdo. Verifique os dados e tente novamente.");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-[20px] font-bold text-black tracking-tight">Conteúdos</h2>
+        <button
+          onClick={() => setShowNew(!showNew)}
+          className="flex items-center gap-1.5 rounded-xl bg-[#e89c30] px-3 py-2 text-[13px] font-bold text-white hover:bg-[#d48a20] transition"
+        >
+          <Plus className="h-4 w-4" />
+          Novo
+        </button>
+      </div>
+
+      {/* Create form */}
+      {showNew && (
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-amber-50 flex items-center gap-2">
+            <Film className="h-4 w-4 text-[#e89c30]" />
+            <span className="text-[15px] font-bold text-black">Adicionar Conteúdo</span>
+          </div>
+          <form onSubmit={handleCreate} className="p-5 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-[12px] font-semibold text-gray-600 mb-1">Título *</label>
+                <input
+                  required
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition"
+                  placeholder="Ex: Álbum de fotos — Março 2025"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-[12px] font-semibold text-gray-600 mb-1">Descrição</label>
+                <textarea
+                  rows={2}
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition resize-none"
+                  placeholder="Descrição curta do conteúdo"
+                />
+              </div>
+              <div>
+                <label className="block text-[12px] font-semibold text-gray-600 mb-1">Tipo</label>
+                <select
+                  value={form.type}
+                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition"
+                >
+                  <option value="album">Álbum</option>
+                  <option value="video">Vídeo</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[12px] font-semibold text-gray-600 mb-1">Preço (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.price}
+                  onChange={(e) => setForm({ ...form, price: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition"
+                  placeholder="29,90"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-[12px] font-semibold text-gray-600 mb-1">URL do Teaser</label>
+                <input
+                  type="url"
+                  value={form.teaserUrl}
+                  onChange={(e) => setForm({ ...form, teaserUrl: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition"
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-[12px] font-semibold text-gray-600 mb-1">Chave do Conteúdo Privado</label>
+                <input
+                  value={form.privateFolderKey}
+                  onChange={(e) => setForm({ ...form, privateFolderKey: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition font-mono"
+                  placeholder="bucket/pasta/arquivo ou URL base"
+                />
+              </div>
+            </div>
+
+            {formError && (
+              <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-[13px] text-red-600 font-medium">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {formError}
+              </div>
+            )}
+            {formSuccess && (
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-[13px] text-green-700 font-medium">
+                <BadgeCheck className="h-4 w-4 shrink-0" />
+                Conteúdo criado com sucesso!
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowNew(false); setFormError(""); setFormSuccess(false); }}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[14px] font-semibold text-gray-700 hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#e89c30] py-2.5 text-[14px] font-bold text-white hover:bg-[#d48a20] disabled:opacity-70 transition"
+              >
+                {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Contents list */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-[#e89c30]" />
+        </div>
+      ) : !data?.length ? (
+        <EmptyState icon={Film} message="Nenhum conteúdo cadastrado ainda." />
+      ) : (
+        <div className="space-y-2">
+          {data.map((c) => (
+            <div key={c.id} className="bg-white rounded-2xl border border-gray-200 p-4 flex items-start gap-3">
+              <div
+                className={`shrink-0 h-10 w-10 rounded-xl flex items-center justify-center ${
+                  c.type === "video" ? "bg-purple-50" : "bg-orange-50"
+                }`}
+              >
+                {c.type === "video" ? (
+                  <Play className="h-5 w-5 text-purple-500" />
+                ) : (
+                  <Images className="h-5 w-5 text-[#e89c30]" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold text-black truncate">{c.title}</p>
+                {c.description && (
+                  <p className="text-[12px] text-gray-400 mt-0.5 line-clamp-1">{c.description}</p>
+                )}
+                <div className="flex items-center gap-3 mt-2">
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                    c.type === "video" ? "bg-purple-100 text-purple-600" : "bg-orange-100 text-[#e89c30]"
+                  }`}>
+                    {c.type === "video" ? "Vídeo" : "Álbum"}
+                  </span>
+                  {c.price != null && (
+                    <span className="text-[12px] font-semibold text-black">
+                      R$ {(c.price / 100).toFixed(2).replace(".", ",")}
+                    </span>
+                  )}
+                  <span className="text-[11px] text-gray-400 ml-auto">
+                    #{c.id} · {new Date(c.createdAt).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Shared empty state ---
+function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message: string }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-10 flex flex-col items-center justify-center gap-3 text-center">
+      <div className="h-14 w-14 rounded-full bg-gray-100 flex items-center justify-center">
+        <Icon className="h-7 w-7 text-gray-300" />
+      </div>
+      <p className="text-[14px] text-gray-500 font-medium">{message}</p>
+    </div>
+  );
+}
+
+// ============================================================================
 // APP ROOT
 // ============================================================================
 
@@ -850,6 +1353,7 @@ export default function App() {
             <Route path="/" component={HomePage} />
             <Route path="/login" component={LoginPage} />
             <Route path="/members" component={MembersPage} />
+            <Route path="/admin" component={AdminPage} />
             <Route>
               <Redirect to="/" />
             </Route>

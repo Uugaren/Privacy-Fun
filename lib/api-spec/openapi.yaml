@@ -16,6 +16,10 @@ tags:
     description: Authentication operations
   - name: members
     description: Member area operations
+  - name: contents
+    description: Content management
+  - name: admin
+    description: Admin-only operations
 paths:
   /healthz:
     get:
@@ -138,6 +142,160 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /contents:
+    get:
+      operationId: listContents
+      tags: [contents]
+      summary: List all available contents (public metadata)
+      responses:
+        "200":
+          description: Contents list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentPublic"
+
+  /contents/{id}/secure-stream:
+    get:
+      operationId: getSecureStream
+      tags: [contents]
+      summary: Get a time-limited secure stream URL for a content item
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Secure stream URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecureStreamResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Forbidden — no active access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/contents:
+    post:
+      operationId: createContent
+      tags: [admin]
+      summary: Create a new content entry (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContentInput"
+      responses:
+        "201":
+          description: Content created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentRecord"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/orders:
+    get:
+      operationId: listAdminOrders
+      tags: [admin]
+      summary: List all orders (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Orders list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderRecord"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all users (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserRecord"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get dashboard summary stats (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -160,9 +318,7 @@ components:
           type: string
         password:
           type: string
-          description: Password to create the account (min 6 chars)
         amount:
-          description: Payment amount in reais (e.g. 21.87)
           oneOf:
             - type: number
             - type: string
@@ -199,7 +355,6 @@ components:
       properties:
         token:
           type: string
-          description: JWT token
         user:
           $ref: "#/components/schemas/UserProfile"
       required: [token, user]
@@ -260,6 +415,137 @@ components:
         processed:
           type: boolean
       required: [received, processed]
+
+    CreateContentInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [album, video]
+        price:
+          type: number
+        teaserUrl:
+          type: string
+        privateFolderKey:
+          type: string
+      required: [title]
+
+    ContentRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        type:
+          type: string
+        price:
+          type: integer
+          nullable: true
+        teaserUrl:
+          type: string
+          nullable: true
+        privateFolderKey:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required: [id, title, type, createdAt, updatedAt]
+
+    ContentPublic:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        type:
+          type: string
+        price:
+          type: integer
+          nullable: true
+        teaserUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, title, type, createdAt]
+
+    SecureStreamResponse:
+      type: object
+      properties:
+        contentId:
+          type: integer
+        streamUrl:
+          type: string
+          nullable: true
+        expiresAt:
+          type: string
+        signature:
+          type: string
+      required: [contentId, expiresAt, signature]
+
+    OrderRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        externalId:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+        amount:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required: [id, externalId, email, status, createdAt, updatedAt]
+
+    UserRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        role:
+          type: string
+        createdAt:
+          type: string
+      required: [id, email, role, createdAt]
+
+    AdminStats:
+      type: object
+      properties:
+        totalOrders:
+          type: integer
+        paidOrders:
+          type: integer
+        totalRevenue:
+          type: integer
+        totalUsers:
+          type: integer
+        totalContents:
+          type: integer
+        totalAccesses:
+          type: integer
+      required: [totalOrders, paidOrders, totalRevenue, totalUsers, totalContents, totalAccesses]
 
     ApiError:
       type: object

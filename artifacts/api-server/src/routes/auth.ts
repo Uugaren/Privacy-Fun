@@ -1,8 +1,12 @@
-import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { eq } from "drizzle-orm";
 import { db, usersTable, userAccessTable } from "@workspace/db";
+import { requireAuth, type AuthedRequest } from "../middlewares/auth.js";
+
+export { requireAuth, type AuthedRequest } from "../middlewares/auth.js";
+export type { JwtPayload } from "../middlewares/auth.js";
 
 const router: IRouter = Router();
 
@@ -51,32 +55,8 @@ router.post("/auth/login", async (req, res) => {
   });
 });
 
-export interface JwtPayload {
-  sub: number;
-  email: string;
-  role: string;
-}
-
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const header = req.headers["authorization"];
-  const token = header?.replace(/^Bearer\s+/i, "");
-
-  if (!token) {
-    res.status(401).json({ error: "Token de autenticação ausente" });
-    return;
-  }
-
-  try {
-    const payload = jwt.verify(token, jwtSecret()) as unknown as JwtPayload;
-    (req as Request & { jwtPayload: JwtPayload }).jwtPayload = payload;
-    next();
-  } catch {
-    res.status(401).json({ error: "Token inválido ou expirado" });
-  }
-}
-
 router.get("/me/access", requireAuth, async (req, res) => {
-  const payload = (req as Request & { jwtPayload: JwtPayload }).jwtPayload;
+  const payload = (req as AuthedRequest).jwtPayload;
 
   const items = await db
     .select({

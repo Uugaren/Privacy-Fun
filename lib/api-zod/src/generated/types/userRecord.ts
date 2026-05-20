@@ -5,9 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { UserProfile } from './userProfile';
 
-export interface AuthSession {
-  token: string;
-  user: UserProfile;
+export interface UserRecord {
+  id: number;
+  email: string;
+  role: string;
+  createdAt: string;
 }
