@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { eq } from "drizzle-orm";
-import { db, ordersTable, userAccessTable } from "../lib/db";
+import { db, ordersTable, userAccessTable } from "../lib/db.js";
 
 const SUCCESS_STATUSES = new Set(["pago", "approved", "paid", "completed"]);
 

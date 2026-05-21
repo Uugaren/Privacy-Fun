@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
-import { db, contentsTable, userAccessTable } from "../../_lib/db";
-import { requireAuth } from "../../_lib/auth";
+import { db, contentsTable, userAccessTable } from "../../lib/db.js";
+import { requireAuth } from "../../lib/auth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {

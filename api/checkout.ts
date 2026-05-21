@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { db, ordersTable, usersTable } from "./lib/db";
+import { db, ordersTable, usersTable } from "./lib/db.js";
 
 interface NexusPixResponse {
   success: boolean;
