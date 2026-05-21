@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { db, usersTable } from "../lib/db";
-import { signToken } from "../lib/auth";
+import { db, usersTable } from "../lib/db.js";
+import { signToken } from "../lib/auth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
