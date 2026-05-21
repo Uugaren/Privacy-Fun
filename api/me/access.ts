@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { eq } from "drizzle-orm";
-import { db, userAccessTable, ordersTable } from "../lib/db.js";
-import { requireAuth } from "../lib/auth.js";
+import { db, userAccessTable } from "../lib/db";
+import { requireAuth } from "../lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
@@ -16,20 +16,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       id: userAccessTable.id,
       externalOrderId: userAccessTable.externalOrderId,
       grantedAt: userAccessTable.grantedAt,
-      amount: ordersTable.amount,
     })
     .from(userAccessTable)
-    .leftJoin(ordersTable, eq(userAccessTable.orderId, ordersTable.id))
     .where(eq(userAccessTable.email, payload.email));
 
   res.json({
     hasAccess: items.length > 0,
     items: items.map((i) => ({
-      id: i.id,
-      externalOrderId: i.externalOrderId,
+      ...i,
       grantedAt: i.grantedAt.toISOString(),
-      amount: i.amount ? i.amount / 100 : 0,
     })),
   });
 }
-
