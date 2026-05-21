@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { eq } from "drizzle-orm";
-import { db, ordersTable, userAccessTable } from "../_lib/db";
+import { db, ordersTable, userAccessTable } from "../lib/db";
 
 const SUCCESS_STATUSES = new Set(["pago", "approved", "paid", "completed"]);
 
@@ -109,3 +109,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   res.json({ received: true, processed });
 }
+

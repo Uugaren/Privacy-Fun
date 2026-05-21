@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db, contentsTable } from "../_lib/db";
+import { db, contentsTable } from "../lib/db";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
@@ -21,3 +21,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   res.json(contents.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() })));
 }
+

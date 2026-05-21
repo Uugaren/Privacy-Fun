@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { db, usersTable } from "../_lib/db";
-import { signToken } from "../_lib/auth";
+import { db, usersTable } from "../lib/db";
+import { signToken } from "../lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -39,3 +39,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     user: { id: user.id, email: user.email, role: user.role },
   });
 }
+

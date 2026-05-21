@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db, usersTable } from "../_lib/db";
-import { requireAdmin } from "../_lib/auth";
+import { db, usersTable } from "../lib/db";
+import { requireAdmin } from "../lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
@@ -22,3 +22,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   res.json(users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() })));
 }
+
