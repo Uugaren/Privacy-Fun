@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db, ordersTable, usersTable, contentsTable, userAccessTable } from "../lib/db.js";
-import { requireAdmin } from "../lib/auth.js";
+import { db, ordersTable, usersTable, contentsTable, userAccessTable } from "../lib/db";
+import { requireAdmin } from "../lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
@@ -29,4 +29,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     totalAccesses: accesses.length,
   });
 }
-

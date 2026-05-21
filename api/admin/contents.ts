@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db, contentsTable } from "../lib/db.js";
-import { requireAdmin } from "../lib/auth.js";
+import { db, contentsTable } from "../lib/db";
+import { requireAdmin } from "../lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -44,4 +44,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.info(`admin: content created — contentId=${content!.id}`);
   res.status(201).json(content);
 }
-
