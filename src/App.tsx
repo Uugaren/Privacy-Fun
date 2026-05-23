@@ -784,6 +784,103 @@ function LoginPage() {
   );
 }
 
+// --- Premium Post Card for Members ---
+function PremiumPostCard({ content }: { content: any }) {
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchStream = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/contents/${content.id}/secure-stream`, {
+          headers: getAuthHeaders(),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setStreamUrl(data.streamUrl);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStream();
+  }, [content.id]);
+
+  const isVideo = content.type === "video" || (streamUrl && (streamUrl.includes(".mp4") || streamUrl.includes(".mov") || streamUrl.includes(".webm")));
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm mt-4">
+      {/* Post header */}
+      <div className="flex items-start justify-between px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="h-9 w-9 overflow-hidden rounded-full border border-gray-200 bg-gradient-to-br from-[#e89c30] to-[#f5c842] flex items-center justify-center text-white text-[12px] font-bold uppercase shadow-sm">
+            EF
+          </div>
+          <div>
+            <p className="text-[14px] font-semibold text-black">Emilly Faria</p>
+            <p className="text-[12px] text-gray-500">@millyfaria4</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Unlocked Content Area */}
+      <div className="relative aspect-video w-full bg-gray-50 flex items-center justify-center overflow-hidden">
+        {loading ? (
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin text-[#e89c30]" />
+            <span className="text-[12px] text-gray-400">Carregando mídia...</span>
+          </div>
+        ) : streamUrl ? (
+          isVideo ? (
+            <video
+              src={streamUrl}
+              className="w-full h-full object-cover"
+              controls
+              playsInline
+            />
+          ) : (
+            <img
+              src={streamUrl}
+              alt={content.title}
+              className="w-full h-full object-cover"
+            />
+          )
+        ) : (
+          <div className="flex flex-col items-center gap-2 p-4 text-center text-gray-400">
+            <Lock className="h-6 w-6" />
+            <span className="text-[12px]">Conteúdo indisponível</span>
+          </div>
+        )}
+      </div>
+
+      {/* Post details */}
+      <div className="px-4 py-3 border-t border-gray-100">
+        <h3 className="text-[15px] font-bold text-black">{content.title}</h3>
+        {content.description && (
+          <p className="text-[13px] text-gray-600 mt-1 leading-relaxed">{content.description}</p>
+        )}
+        <p className="text-[11px] text-gray-400 mt-2">
+          Publicado em {new Date(content.createdAt).toLocaleDateString("pt-BR")}
+        </p>
+      </div>
+
+      {/* Interaction bar */}
+      <div className="flex items-center gap-4 px-4 py-2.5 border-t border-gray-50 bg-gray-50/50">
+        <button className="flex items-center gap-1.5 text-red-500 transition">
+          <Heart className="h-[18px] w-[18px] fill-red-500 text-red-500" />
+          <span className="text-[14px] font-semibold">124</span>
+        </button>
+        <button className="flex items-center gap-1.5 text-gray-500">
+          <MessageCircle className="h-[18px] w-[18px]" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // --- Members Page ---
 function MembersPage() {
   const { user, token } = useAuth();
@@ -793,6 +890,7 @@ function MembersPage() {
   }
 
   const { data, isLoading } = useGetMyAccess();
+  const { data: contents, isLoading: loadingContents } = useListContents();
 
   return (
     <div className="min-h-screen bg-gray-50 pt-14 pb-12">
@@ -813,35 +911,59 @@ function MembersPage() {
         ) : (
           <div className="space-y-4">
             {data?.hasAccess ? (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-4 border-b border-gray-100 flex items-center gap-2 bg-gradient-to-r from-orange-50 to-amber-50">
-                  <Sparkles className="h-5 w-5 text-[#e89c30]" />
-                  <h2 className="text-[16px] font-bold text-black">Seus Acessos Ativos</h2>
-                </div>
-                <div className="divide-y divide-gray-100">
-                  {data.items?.map((item: any) => (
-                    <div key={item.id} className="p-4 flex items-center justify-between">
-                      <div>
-                        <p className="text-[15px] font-semibold text-black">
-                          Acesso: R$ {item.amount.toFixed(2).replace('.', ',')}
-                        </p>
-                        <p className="text-[13px] text-gray-500 mt-0.5">
-                          Liberado em {new Date(item.grantedAt).toLocaleDateString('pt-BR')}
-                        </p>
+              <>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="p-4 border-b border-gray-100 flex items-center gap-2 bg-gradient-to-r from-orange-50 to-amber-50">
+                    <Sparkles className="h-5 w-5 text-[#e89c30]" />
+                    <h2 className="text-[16px] font-bold text-black">Seus Acessos Ativos</h2>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {data.items?.map((item: any) => (
+                      <div key={item.id} className="p-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-[15px] font-semibold text-black">
+                            Acesso: R$ {item.amount.toFixed(2).replace('.', ',')}
+                          </p>
+                          <p className="text-[13px] text-gray-500 mt-0.5">
+                            Liberado em {new Date(item.grantedAt).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        </div>
                       </div>
-                      <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+
+                  <div className="p-4 bg-gray-50 border-t border-gray-100">
+                    <p className="text-[14px] text-gray-600 text-center font-medium">
+                      Você tem acesso total ao conteúdo exclusivo.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="p-4 bg-gray-50 border-t border-gray-100">
-                  <p className="text-[14px] text-gray-600 text-center font-medium">
-                    Você tem acesso total ao conteúdo exclusivo.
-                  </p>
+                <div className="mt-8">
+                  <h2 className="text-[18px] font-bold text-black tracking-tight mb-4">Feed Exclusivo</h2>
+                  
+                  {loadingContents ? (
+                    <div className="flex flex-col items-center justify-center py-12 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#e89c30]" />
+                      <p className="text-gray-400 text-[12px] mt-2">Carregando feed...</p>
+                    </div>
+                  ) : !contents?.length ? (
+                    <div className="p-10 text-center bg-white rounded-2xl border border-gray-200 shadow-sm">
+                      <Film className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-500 text-sm font-medium">Nenhum conteúdo publicado ainda.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {contents.map((content: any) => (
+                        <PremiumPostCard key={content.id} content={content} />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+              </>
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
                 <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
