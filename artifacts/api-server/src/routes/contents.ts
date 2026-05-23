@@ -1,5 +1,7 @@
 import { Router, type IRouter } from "express";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { eq } from "drizzle-orm";
 import { db, contentsTable, userAccessTable, ordersTable, usersTable } from "@workspace/db";
 import { requireAuth, requireAdmin, type AuthedRequest } from "../middlewares/auth.js";
@@ -43,6 +45,45 @@ router.post("/admin/contents", requireAdmin, async (req, res) => {
 
   req.log.info({ contentId: content!.id }, "admin: content created");
   res.status(201).json(content);
+});
+
+// POST /admin/upload — upload file as base64 (admin only)
+router.post("/admin/upload", requireAdmin, async (req, res) => {
+  const { fileName, fileData } = req.body as {
+    fileName?: string;
+    fileData?: string; // base64-encoded string
+  };
+
+  if (!fileName || !fileData) {
+    res.status(400).json({ error: "Nome do arquivo e dados do arquivo são obrigatórios" });
+    return;
+  }
+
+  try {
+    // Decode base64
+    const base64Data = fileData.replace(/^data:[a-zA-Z0-9-\/]+;base64,/, "");
+    const buffer = Buffer.from(base64Data, "base64");
+
+    // Extract file extension or use a generic one
+    const ext = path.extname(fileName) || ".bin";
+    const uniqueName = `${crypto.randomUUID()}${ext}`;
+
+    // Ensure public/uploads directory exists
+    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    await fs.mkdir(uploadsDir, { recursive: true });
+
+    // Write file
+    const filePath = path.join(uploadsDir, uniqueName);
+    await fs.writeFile(filePath, buffer);
+
+    const fileUrl = `/uploads/${uniqueName}`;
+
+    req.log.info({ fileUrl }, "admin: uploaded file saved");
+    res.status(200).json({ url: fileUrl });
+  } catch (error: any) {
+    req.log.error(error, "Upload error");
+    res.status(500).json({ error: "Erro interno ao salvar arquivo" });
+  }
 });
 
 // GET /contents — list all contents (public metadata, no private keys)

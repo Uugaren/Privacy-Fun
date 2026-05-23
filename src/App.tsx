@@ -27,6 +27,8 @@ import {
   Shield,
   BadgeCheck,
   AlertCircle,
+  Upload,
+  Trash2,
 } from "lucide-react";
 import {
   useCreateCheckout,
@@ -1109,6 +1111,114 @@ function AdminUsers() {
 }
 
 // --- Admin Contents ---
+interface FileDropZoneProps {
+  id: string;
+  previewUrl: string;
+  uploading: boolean;
+  dragOver: boolean;
+  setDragOver: (v: boolean) => void;
+  onFileSelect: (file: File) => void;
+  onRemove: () => void;
+  placeholderText: string;
+  isRequired?: boolean;
+}
+
+function FileDropZone({
+  previewUrl,
+  uploading,
+  dragOver,
+  setDragOver,
+  onFileSelect,
+  onRemove,
+  placeholderText,
+}: FileDropZoneProps) {
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragOver(true);
+    } else if (e.type === "dragleave") {
+      setDragOver(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      onFileSelect(e.dataTransfer.files[0]);
+    }
+  };
+
+  const isVideoPreview = previewUrl.includes("video") || previewUrl.endsWith(".mp4") || previewUrl.endsWith(".mov") || previewUrl.endsWith(".webm") || previewUrl.includes("data:video");
+
+  return (
+    <div
+      onDragEnter={handleDrag}
+      onDragOver={handleDrag}
+      onDragLeave={handleDrag}
+      onDrop={handleDrop}
+      className={`relative flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-xl transition overflow-hidden min-h-[140px] bg-white ${
+        dragOver ? "border-[#e89c30] bg-orange-50/20" : "border-gray-200 hover:border-gray-300"
+      }`}
+    >
+      {previewUrl ? (
+        <div className="absolute inset-0 w-full h-full group">
+          {isVideoPreview ? (
+            <video 
+              src={previewUrl} 
+              className="w-full h-full object-cover" 
+              controls={false}
+              muted
+              loop
+              autoPlay
+            />
+          ) : (
+            <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
+          )}
+          
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition gap-2">
+            {uploading ? (
+              <Loader2 className="h-6 w-6 text-white animate-spin" />
+            ) : (
+              <button
+                type="button"
+                onClick={onRemove}
+                className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition shadow-lg"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {uploading && (
+            <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+              <Loader2 className="h-6 w-6 text-white animate-spin" />
+            </div>
+          )}
+        </div>
+      ) : (
+        <label className="cursor-pointer flex flex-col items-center text-center p-4 w-full h-full justify-center">
+          <input
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                onFileSelect(e.target.files[0]);
+              }
+            }}
+          />
+          <Upload className="h-6 w-6 text-gray-400 mb-2" />
+          <p className="text-[12px] font-semibold text-gray-700">{placeholderText}</p>
+          <p className="text-[10px] text-gray-400 mt-1">Arrastar e soltar ou clique para escolher</p>
+        </label>
+      )}
+    </div>
+  );
+}
+
 function AdminContents({
   showNew,
   setShowNew,
@@ -1130,10 +1240,105 @@ function AdminContents({
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState(false);
 
+  // Upload state
+  const [, setTeaserFile] = useState<File | null>(null);
+  const [teaserPreview, setTeaserPreview] = useState<string>("");
+  const [uploadingTeaser, setUploadingTeaser] = useState(false);
+  const [dragOverTeaser, setDragOverTeaser] = useState(false);
+
+  const [, setPrivateFile] = useState<File | null>(null);
+  const [privatePreview, setPrivatePreview] = useState<string>("");
+  const [uploadingPrivate, setUploadingPrivate] = useState(false);
+  const [dragOverPrivate, setDragOverPrivate] = useState(false);
+
+  const resetForm = () => {
+    setForm({ title: "", description: "", type: "album", price: "", teaserUrl: "", privateFolderKey: "" });
+    setTeaserFile(null);
+    setTeaserPreview("");
+    setUploadingTeaser(false);
+    setPrivateFile(null);
+    setPrivatePreview("");
+    setUploadingPrivate(false);
+    setFormError("");
+    setFormSuccess(false);
+  };
+
+  const handleFileChange = async (file: File, isTeaser: boolean) => {
+    // 1. Show preview instantly
+    const previewUrl = URL.createObjectURL(file);
+    if (isTeaser) {
+      setTeaserFile(file);
+      setTeaserPreview(previewUrl);
+      setUploadingTeaser(true);
+    } else {
+      setPrivateFile(file);
+      setPrivatePreview(previewUrl);
+      setUploadingPrivate(true);
+      
+      // Auto-detect type
+      const isVideo = file.type.startsWith("video/");
+      setForm(prev => ({ ...prev, type: isVideo ? "video" : "album" }));
+    }
+
+    // 2. Read as base64
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = reader.result as string;
+        
+        // 3. Upload to API
+        const response = await fetch("/api/admin/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileData: base64Data,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Erro no upload");
+        }
+
+        const data = await response.json();
+        
+        // 4. Update form URL state
+        if (isTeaser) {
+          setForm(prev => ({ ...prev, teaserUrl: data.url }));
+        } else {
+          setForm(prev => ({ ...prev, privateFolderKey: data.url }));
+        }
+      } catch (err) {
+        console.error(err);
+        setFormError(isTeaser ? "Erro ao subir a imagem de teaser." : "Erro ao subir o conteúdo exclusivo.");
+      } finally {
+        if (isTeaser) {
+          setUploadingTeaser(false);
+        } else {
+          setUploadingPrivate(false);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
     setFormSuccess(false);
+    
+    if (!form.title) {
+      setFormError("O campo título é obrigatório.");
+      return;
+    }
+    if (!form.privateFolderKey) {
+      setFormError("O conteúdo exclusivo é obrigatório.");
+      return;
+    }
+
     try {
       await createMutation.mutateAsync({
         data: {
@@ -1146,10 +1351,9 @@ function AdminContents({
         },
       });
       setFormSuccess(true);
-      setForm({ title: "", description: "", type: "album", price: "", teaserUrl: "", privateFolderKey: "" });
       refetch();
       setTimeout(() => {
-        setFormSuccess(false);
+        resetForm();
         setShowNew(false);
       }, 1500);
     } catch {
@@ -1170,109 +1374,192 @@ function AdminContents({
         </button>
       </div>
 
-      {/* Create form */}
+      {/* Instagram-style creation dialog */}
       {showNew && (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-amber-50 flex items-center gap-2">
-            <Film className="h-4 w-4 text-[#e89c30]" />
-            <span className="text-[15px] font-bold text-black">Adicionar Conteúdo</span>
-          </div>
-          <form onSubmit={handleCreate} className="p-5 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <label className="block text-[12px] font-semibold text-gray-600 mb-1">Título *</label>
-                <input
-                  required
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition"
-                  placeholder="Ex: Álbum de fotos — Março 2025"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-[12px] font-semibold text-gray-600 mb-1">Descrição</label>
-                <textarea
-                  rows={2}
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition resize-none"
-                  placeholder="Descrição curta do conteúdo"
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] font-semibold text-gray-600 mb-1">Tipo</label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition"
-                >
-                  <option value="album">Álbum</option>
-                  <option value="video">Vídeo</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[12px] font-semibold text-gray-600 mb-1">Preço (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.price}
-                  onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition"
-                  placeholder="29,90"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-[12px] font-semibold text-gray-600 mb-1">URL do Teaser</label>
-                <input
-                  type="url"
-                  value={form.teaserUrl}
-                  onChange={(e) => setForm({ ...form, teaserUrl: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition"
-                  placeholder="https://..."
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-[12px] font-semibold text-gray-600 mb-1">Chave do Conteúdo Privado</label>
-                <input
-                  value={form.privateFolderKey}
-                  onChange={(e) => setForm({ ...form, privateFolderKey: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30] transition font-mono"
-                  placeholder="bucket/pasta/arquivo ou URL base"
-                />
-              </div>
-            </div>
-
-            {formError && (
-              <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-[13px] text-red-600 font-medium">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                {formError}
-              </div>
-            )}
-            {formSuccess && (
-              <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-[13px] text-green-700 font-medium">
-                <BadgeCheck className="h-4 w-4 shrink-0" />
-                Conteúdo criado com sucesso!
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-1">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity cursor-default" 
+            onClick={() => {
+              if (!uploadingTeaser && !uploadingPrivate && !createMutation.isPending) {
+                setShowNew(false);
+                resetForm();
+              }
+            }}
+          />
+          
+          {/* Instagram-style dialog container */}
+          <div className="relative w-full max-w-[850px] h-[550px] bg-white rounded-2xl shadow-2xl z-10 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            
+            {/* Modal Header */}
+            <div className="h-12 border-b border-gray-100 flex items-center justify-between px-4 shrink-0 bg-white">
               <button
                 type="button"
-                onClick={() => { setShowNew(false); setFormError(""); setFormSuccess(false); }}
-                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[14px] font-semibold text-gray-700 hover:bg-gray-50 transition"
+                onClick={() => {
+                  setShowNew(false);
+                  resetForm();
+                }}
+                className="text-gray-500 hover:text-black transition"
               >
-                Cancelar
+                <X className="h-5 w-5" />
               </button>
+              <span className="text-[15px] font-bold text-black">Criar nova publicação</span>
               <button
-                type="submit"
-                disabled={createMutation.isPending}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#e89c30] py-2.5 text-[14px] font-bold text-white hover:bg-[#d48a20] disabled:opacity-70 transition"
+                onClick={handleCreate}
+                disabled={uploadingTeaser || uploadingPrivate || createMutation.isPending || !form.title || !form.privateFolderKey}
+                className="text-[14px] font-bold text-[#e89c30] hover:text-[#d48a20] disabled:opacity-40 transition"
               >
-                {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+                {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Compartilhar"}
               </button>
             </div>
-          </form>
+
+            {/* Two Column Layout */}
+            <div className="flex-1 flex overflow-hidden">
+              
+              {/* Left Side: Upload zones (Media Previews) */}
+              <div className="flex-1 bg-gray-50 border-r border-gray-100 p-5 overflow-y-auto flex flex-col gap-4">
+                
+                {/* Teaser Upload Slot */}
+                <div className="flex-1 flex flex-col min-h-0">
+                  <span className="text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">
+                    1. Capa Grátis / Teaser (Público)
+                  </span>
+                  <FileDropZone
+                    id="teaser-drop"
+                    previewUrl={teaserPreview}
+                    uploading={uploadingTeaser}
+                    dragOver={dragOverTeaser}
+                    setDragOver={setDragOverTeaser}
+                    onFileSelect={(file) => handleFileChange(file, true)}
+                    onRemove={() => {
+                      setTeaserPreview("");
+                      setTeaserFile(null);
+                      setForm(prev => ({ ...prev, teaserUrl: "" }));
+                    }}
+                    placeholderText="Imagem ou vídeo de capa grátis"
+                  />
+                </div>
+
+                {/* Premium Content Upload Slot */}
+                <div className="flex-1 flex flex-col min-h-0">
+                  <span className="text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">
+                    2. Conteúdo Exclusivo (Premium) *
+                  </span>
+                  <FileDropZone
+                    id="private-drop"
+                    previewUrl={privatePreview}
+                    uploading={uploadingPrivate}
+                    dragOver={dragOverPrivate}
+                    setDragOver={setDragOverPrivate}
+                    onFileSelect={(file) => handleFileChange(file, false)}
+                    onRemove={() => {
+                      setPrivatePreview("");
+                      setPrivateFile(null);
+                      setForm(prev => ({ ...prev, privateFolderKey: "" }));
+                    }}
+                    placeholderText="Foto ou vídeo exclusivo (bloqueado)"
+                    isRequired
+                  />
+                </div>
+              </div>
+
+              {/* Right Side: Form details (Legenda, Título, Preço) */}
+              <div className="w-[340px] flex flex-col bg-white p-5 overflow-y-auto shrink-0 justify-between">
+                
+                <div className="space-y-4">
+                  {/* Admin Row */}
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-br from-[#e89c30] to-[#f5c842] flex items-center justify-center text-white text-[11px] font-bold uppercase shadow-sm">
+                      AD
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-bold text-black">Administrador</p>
+                      <p className="text-[11px] text-gray-400">@admin</p>
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-400 mb-1 uppercase tracking-wider">Título *</label>
+                    <input
+                      required
+                      value={form.title}
+                      onChange={(e) => setForm({ ...form, title: e.target.value })}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white transition"
+                      placeholder="Título da publicação"
+                    />
+                  </div>
+
+                  {/* Description (Caption style) */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-400 mb-1 uppercase tracking-wider">Legenda / Descrição</label>
+                    <textarea
+                      rows={4}
+                      value={form.description}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white transition resize-none"
+                      placeholder="Escreva uma legenda descritiva..."
+                    />
+                  </div>
+
+                  {/* Row with Price and Type */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-400 mb-1 uppercase tracking-wider">Preço (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={form.price}
+                        onChange={(e) => setForm({ ...form, price: e.target.value })}
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white transition"
+                        placeholder="29,90"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-400 mb-1 uppercase tracking-wider">Tipo Detectado</label>
+                      <select
+                        value={form.type}
+                        onChange={(e) => setForm({ ...form, type: e.target.value })}
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[14px] outline-none focus:border-[#e89c30] focus:bg-white transition"
+                      >
+                        <option value="album">Álbum (Fotos)</option>
+                        <option value="video">Vídeo</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Feedback section at the bottom */}
+                <div className="pt-4 mt-auto border-t border-gray-100 bg-white">
+                  {formError && (
+                    <div className="flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-[12px] text-red-600 font-medium mb-3">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{formError}</span>
+                    </div>
+                  )}
+                  {formSuccess && (
+                    <div className="flex items-center gap-2 rounded-lg bg-green-50 p-2.5 text-[12px] text-green-700 font-medium mb-3">
+                      <BadgeCheck className="h-4 w-4 shrink-0" />
+                      Publicação compartilhada!
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleCreate}
+                    disabled={uploadingTeaser || uploadingPrivate || createMutation.isPending || !form.title || !form.privateFolderKey}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-black py-3 text-[14px] font-bold text-white transition hover:bg-gray-800 disabled:opacity-40"
+                  >
+                    {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publicar Conteúdo"}
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
         </div>
       )}
 
