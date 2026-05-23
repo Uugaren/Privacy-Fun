@@ -130,7 +130,7 @@ function Header() {
       <div className="flex items-center gap-3">
         {user ? (
           <div className="relative">
-            <button 
+            <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="flex items-center gap-2 h-9 px-2 rounded-full hover:bg-gray-50 transition"
             >
@@ -156,7 +156,7 @@ function Header() {
                       </div>
                     </Link>
                   )}
-                  <button 
+                  <button
                     onClick={() => {
                       logout();
                       setMenuOpen(false);
@@ -181,13 +181,13 @@ function Header() {
 }
 
 // --- Checkout Modal ---
-function CheckoutModal({ 
-  isOpen, 
-  onClose, 
-  amount 
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
+function CheckoutModal({
+  isOpen,
+  onClose,
+  amount
+}: {
+  isOpen: boolean;
+  onClose: () => void;
   amount: number;
 }) {
   const [step, setStep] = useState<1 | 2>(1);
@@ -196,7 +196,7 @@ function CheckoutModal({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState(false);
-  
+
   const [, setLocation] = useLocation();
   const checkoutMutation = useCreateCheckout();
 
@@ -217,7 +217,7 @@ function CheckoutModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
-    
+
     if (password.length < 6) {
       setErrorMsg("A senha deve ter no mínimo 6 caracteres.");
       return;
@@ -253,7 +253,7 @@ function CheckoutModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-200">
-        <button 
+        <button
           onClick={onClose}
           className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
         >
@@ -341,13 +341,13 @@ function CheckoutModal({
                   Pix Copia e Cola
                 </p>
                 <div className="flex items-center gap-2">
-                  <input 
-                    type="text" 
-                    readOnly 
-                    value={checkoutMutation.data?.pix_copy_paste || ""} 
+                  <input
+                    type="text"
+                    readOnly
+                    value={checkoutMutation.data?.pix_copy_paste || ""}
                     className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-[13px] text-gray-600 outline-none font-mono"
                   />
-                  <button 
+                  <button
                     onClick={copyPix}
                     className="flex shrink-0 h-[42px] px-4 items-center justify-center gap-1.5 rounded-lg bg-[#e89c30] text-[13px] font-bold text-white hover:bg-[#d48a20] transition"
                   >
@@ -480,9 +480,9 @@ function HomePage() {
             <div className="px-4 pb-5 pt-14">
               <div className="text-center">
                 <h1 className="text-[17px] font-bold tracking-[-0.03em] text-black">
-                  Emilly Faria
+                  Duda Wolfram
                 </h1>
-                <p className="text-[15px] text-gray-500">@millyfaria4</p>
+                <p className="text-[15px] text-gray-500">@duda_wolfram</p>
               </div>
 
               <div className="mt-4 flex items-center justify-center gap-6">
@@ -526,7 +526,7 @@ function HomePage() {
               <span className="text-[14px] font-semibold text-black">Economize 26%</span>
             </div>
 
-            <button 
+            <button
               onClick={() => openCheckout(21.87)}
               className="w-full rounded-xl bg-[#e89c30] py-3.5 text-[15px] font-semibold text-black transition hover:bg-[#d48a20]"
             >
@@ -536,13 +536,6 @@ function HomePage() {
             <p className="text-center text-[12px] text-gray-500">
               Preço original <span className="line-through">R$ 29,55</span>
             </p>
-
-            <button 
-              onClick={() => openCheckout(148.87)}
-              className="w-full rounded-xl border border-gray-200 bg-white py-3.5 text-[15px] font-semibold text-black transition hover:bg-gray-50"
-            >
-              ★ Ligar agora para Milly?
-            </button>
           </div>
 
           {/* Subscription Tiers */}
@@ -556,7 +549,6 @@ function HomePage() {
                 { label: "1 Mês (26% off)", price: "R$ 21,87", amount: 21.87 },
                 { label: "3 meses (42% off)", price: "R$ 43,87", amount: 43.87 },
                 { label: "Vitalício (50% off)", price: "R$ 65,98", amount: 65.98 },
-                { label: "Chamada de vídeo (1h)", price: "R$ 148,87", amount: 148.87 },
               ].map((tier, i) => (
                 <button
                   key={i}
@@ -574,22 +566,20 @@ function HomePage() {
           <div className="flex overflow-hidden rounded-2xl border border-gray-200 bg-white mt-2">
             <button
               onClick={() => setActiveTab("fotos")}
-              className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-3.5 text-[15px] font-semibold transition ${
-                activeTab === "fotos"
+              className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-3.5 text-[15px] font-semibold transition ${activeTab === "fotos"
                   ? "text-[#e89c30] border-b-2 border-[#e89c30]"
                   : "text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
             >
               <Images className={`h-[18px] w-[18px] ${activeTab === "fotos" ? "text-[#e89c30]" : "text-gray-400"}`} />
               Fotos
             </button>
             <button
               onClick={() => setActiveTab("videos")}
-              className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-3.5 text-[15px] font-semibold transition ${
-                activeTab === "videos"
+              className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-3.5 text-[15px] font-semibold transition ${activeTab === "videos"
                   ? "text-[#e89c30] border-b-2 border-[#e89c30]"
                   : "text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
             >
               <Play className={`h-[18px] w-[18px] ${activeTab === "videos" ? "text-[#e89c30]" : "text-gray-400"}`} />
               Vídeos
@@ -612,9 +602,8 @@ function HomePage() {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`flex items-center gap-2.5 rounded-2xl border border-gray-100 bg-white px-3 py-2.5 shadow-lg ${
-              toast.exiting ? "toast-exit" : "toast-enter"
-            }`}
+            className={`flex items-center gap-2.5 rounded-2xl border border-gray-100 bg-white px-3 py-2.5 shadow-lg ${toast.exiting ? "toast-exit" : "toast-enter"
+              }`}
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#e89c30]/60 to-[#f5c842]/60">
               <span className="text-[10px] font-bold text-white">{toast.avatar}</span>
@@ -628,9 +617,9 @@ function HomePage() {
         ))}
       </div>
 
-      <CheckoutModal 
-        isOpen={isCheckoutOpen} 
-        onClose={() => setIsCheckoutOpen(false)} 
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
         amount={checkoutAmount}
       />
     </>
@@ -644,11 +633,11 @@ function PostCard({ likeCount, onUnlock }: { likeCount: number; onUnlock: () => 
       <div className="flex items-start justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 overflow-hidden rounded-full border border-gray-200">
-            <img src={profileImg} alt="Emilly Faria" className="h-full w-full object-cover" />
+            <img src={profileImg} alt="Duda Wolfram" className="h-full w-full object-cover" />
           </div>
           <div>
-            <p className="text-[14px] font-semibold text-black">Emilly Faria</p>
-            <p className="text-[12px] text-gray-500">@millyfaria4</p>
+            <p className="text-[14px] font-semibold text-black">Duda Wolfram</p>
+            <p className="text-[12px] text-gray-500">@duda_wolfram</p>
           </div>
         </div>
         <button className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-black transition">
@@ -698,7 +687,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-  
+
   const loginMutation = useLogin();
   const { login } = useAuth();
   const [, setLocation] = useLocation();
@@ -878,7 +867,7 @@ function PremiumPostCard({ content }: { content: any }) {
 // --- Members Page ---
 function MembersPage() {
   const { user, token } = useAuth();
-  
+
   if (!token || !user) {
     return <Redirect to="/login" />;
   }
@@ -899,7 +888,7 @@ function MembersPage() {
             {data?.hasAccess ? (
               <div className="mt-2">
                 <h2 className="text-[18px] font-bold text-black tracking-tight mb-4">Feed Exclusivo</h2>
-                
+
                 {loadingContents ? (
                   <div className="flex flex-col items-center justify-center py-12 bg-white rounded-2xl border border-gray-200 shadow-sm">
                     <Loader2 className="h-6 w-6 animate-spin text-[#e89c30]" />
@@ -979,11 +968,10 @@ function AdminPage() {
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-1.5 px-4 py-3.5 text-[14px] font-semibold border-b-2 transition whitespace-nowrap ${
-                activeTab === id
+              className={`flex items-center gap-1.5 px-4 py-3.5 text-[14px] font-semibold border-b-2 transition whitespace-nowrap ${activeTab === id
                   ? "border-[#e89c30] text-[#e89c30]"
                   : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
             >
               <Icon className="h-4 w-4" />
               {label}
@@ -1107,9 +1095,8 @@ function AdminOrders() {
                   <p className="text-[12px] text-gray-400 font-mono mt-0.5 truncate">{order.externalId}</p>
                 </div>
                 <span
-                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize ${
-                    statusColor[order.status] ?? "bg-gray-100 text-gray-500"
-                  }`}
+                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize ${statusColor[order.status] ?? "bg-gray-100 text-gray-500"
+                    }`}
                 >
                   {order.status}
                 </span>
@@ -1170,11 +1157,10 @@ function AdminUsers() {
                 </p>
               </div>
               <span
-                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                  u.role === "admin"
+                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${u.role === "admin"
                     ? "bg-orange-100 text-[#e89c30]"
                     : "bg-gray-100 text-gray-500"
-                }`}
+                  }`}
               >
                 {u.role}
               </span>
@@ -1222,7 +1208,7 @@ function FileDropZone({
     e.preventDefault();
     e.stopPropagation();
     setDragOver(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       onFileSelect(e.dataTransfer.files[0]);
     }
@@ -1236,16 +1222,15 @@ function FileDropZone({
       onDragOver={handleDrag}
       onDragLeave={handleDrag}
       onDrop={handleDrop}
-      className={`relative flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-xl transition overflow-hidden min-h-[140px] bg-white ${
-        dragOver ? "border-[#e89c30] bg-orange-50/20" : "border-gray-200 hover:border-gray-300"
-      }`}
+      className={`relative flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-xl transition overflow-hidden min-h-[140px] bg-white ${dragOver ? "border-[#e89c30] bg-orange-50/20" : "border-gray-200 hover:border-gray-300"
+        }`}
     >
       {previewUrl ? (
         <div className="absolute inset-0 w-full h-full group">
           {isVideoPreview ? (
-            <video 
-              src={previewUrl} 
-              className="w-full h-full object-cover" 
+            <video
+              src={previewUrl}
+              className="w-full h-full object-cover"
               controls={false}
               muted
               loop
@@ -1254,7 +1239,7 @@ function FileDropZone({
           ) : (
             <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
           )}
-          
+
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition gap-2">
             {uploading ? (
               <Loader2 className="h-6 w-6 text-white animate-spin" />
@@ -1350,7 +1335,7 @@ function AdminContents({
       setPrivateFile(file);
       setPrivatePreview(previewUrl);
       setUploadingPrivate(true);
-      
+
       // Auto-detect type
       const isVideo = file.type.startsWith("video/");
       setForm(prev => ({ ...prev, type: isVideo ? "video" : "album" }));
@@ -1361,7 +1346,7 @@ function AdminContents({
       const supabaseUrl = "https://tswqkbfetbsayjcavuoc.supabase.co";
       const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzd3FrYmZldGJzYXlqY2F2dW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTE3MjksImV4cCI6MjA5NDk2NzcyOX0.CqCDzFEg_3Blgf-0nTHSMDnuNwzsKK65LNZsjJ7rnec";
       const bucketName = "Duda-bucket";
-      
+
       const ext = file.name.split('.').pop() || 'bin';
       const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}.${ext}`;
       const filePath = `uploads/${uniqueName}`;
@@ -1385,7 +1370,7 @@ function AdminContents({
 
       // Generate the public URL
       const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${filePath}`;
-      
+
       // Update form URL state
       if (isTeaser) {
         setForm(prev => ({ ...prev, teaserUrl: publicUrl }));
@@ -1394,8 +1379,8 @@ function AdminContents({
       }
     } catch (err: any) {
       console.error(err);
-      setFormError(isTeaser 
-        ? `Erro ao subir a imagem de teaser: ${err.message || err}` 
+      setFormError(isTeaser
+        ? `Erro ao subir a imagem de teaser: ${err.message || err}`
         : `Erro ao subir o conteúdo exclusivo: ${err.message || err}`
       );
     } finally {
@@ -1411,7 +1396,7 @@ function AdminContents({
     e.preventDefault();
     setFormError("");
     setFormSuccess(false);
-    
+
     if (!form.title) {
       setFormError("O campo título é obrigatório.");
       return;
@@ -1460,8 +1445,8 @@ function AdminContents({
       {showNew && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity cursor-default" 
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity cursor-default"
             onClick={() => {
               if (!uploadingTeaser && !uploadingPrivate && !createMutation.isPending) {
                 setShowNew(false);
@@ -1469,10 +1454,10 @@ function AdminContents({
               }
             }}
           />
-          
+
           {/* Instagram-style dialog container */}
           <div className="relative w-full max-w-[850px] h-[550px] bg-white rounded-2xl shadow-2xl z-10 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            
+
             {/* Modal Header */}
             <div className="h-12 border-b border-gray-100 flex items-center justify-between px-4 shrink-0 bg-white">
               <button
@@ -1497,10 +1482,10 @@ function AdminContents({
 
             {/* Two Column Layout */}
             <div className="flex-1 flex overflow-hidden">
-              
+
               {/* Left Side: Upload zones (Media Previews) */}
               <div className="flex-1 bg-gray-50 border-r border-gray-100 p-5 overflow-y-auto flex flex-col gap-4">
-                
+
                 {/* Teaser Upload Slot */}
                 <div className="flex-1 flex flex-col min-h-0">
                   <span className="text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">
@@ -1547,7 +1532,7 @@ function AdminContents({
 
               {/* Right Side: Form details (Legenda, Título, Preço) */}
               <div className="w-[340px] flex flex-col bg-white p-5 overflow-y-auto shrink-0 justify-between">
-                
+
                 <div className="space-y-4">
                   {/* Admin Row */}
                   <div className="flex items-center gap-2.5">
@@ -1657,9 +1642,8 @@ function AdminContents({
           {data.map((c) => (
             <div key={c.id} className="bg-white rounded-2xl border border-gray-200 p-4 flex items-start gap-3">
               <div
-                className={`shrink-0 h-10 w-10 rounded-xl flex items-center justify-center ${
-                  c.type === "video" ? "bg-purple-50" : "bg-orange-50"
-                }`}
+                className={`shrink-0 h-10 w-10 rounded-xl flex items-center justify-center ${c.type === "video" ? "bg-purple-50" : "bg-orange-50"
+                  }`}
               >
                 {c.type === "video" ? (
                   <Play className="h-5 w-5 text-purple-500" />
@@ -1673,9 +1657,8 @@ function AdminContents({
                   <p className="text-[12px] text-gray-400 mt-0.5 line-clamp-1">{c.description}</p>
                 )}
                 <div className="flex items-center gap-3 mt-2">
-                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                    c.type === "video" ? "bg-purple-100 text-purple-600" : "bg-orange-100 text-[#e89c30]"
-                  }`}>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${c.type === "video" ? "bg-purple-100 text-purple-600" : "bg-orange-100 text-[#e89c30]"
+                    }`}>
                     {c.type === "video" ? "Vídeo" : "Álbum"}
                   </span>
                   {c.price != null && (
