@@ -827,9 +827,9 @@ function PremiumPostCard({ content }: { content: any }) {
       </div>
 
       {/* Unlocked Content Area */}
-      <div className="relative aspect-video w-full bg-gray-50 flex items-center justify-center overflow-hidden">
+      <div className="relative w-full bg-black/5 flex items-center justify-center overflow-hidden">
         {loading ? (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2 aspect-video justify-center w-full">
             <Loader2 className="h-6 w-6 animate-spin text-[#e89c30]" />
             <span className="text-[12px] text-gray-400">Carregando mídia...</span>
           </div>
@@ -837,19 +837,23 @@ function PremiumPostCard({ content }: { content: any }) {
           isVideo ? (
             <video
               src={streamUrl}
-              className="w-full h-full object-cover"
+              className="w-full max-h-[600px] object-contain bg-black"
               controls
+              controlsList="nodownload"
+              onContextMenu={(e) => e.preventDefault()}
               playsInline
             />
           ) : (
-            <img
-              src={streamUrl}
-              alt={content.title}
-              className="w-full h-full object-cover"
-            />
+            <div className="aspect-video w-full">
+              <img
+                src={streamUrl}
+                alt={content.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
           )
         ) : (
-          <div className="flex flex-col items-center gap-2 p-4 text-center text-gray-400">
+          <div className="flex flex-col items-center gap-2 p-4 text-center text-gray-400 aspect-video justify-center w-full">
             <Lock className="h-6 w-6" />
             <span className="text-[12px]">Conteúdo indisponível</span>
           </div>
@@ -883,7 +887,7 @@ function MembersPage() {
   const { data: contents, isLoading: loadingContents } = useListContents();
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-14 pb-12">
+    <div className="min-h-screen bg-gray-100 pt-14 pb-12">
       <div className="mx-auto max-w-[480px] px-4 py-6">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
