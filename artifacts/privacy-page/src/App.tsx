@@ -1280,49 +1280,55 @@ function AdminContents({
       setForm(prev => ({ ...prev, type: isVideo ? "video" : "album" }));
     }
 
-    // 2. Read as base64
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const base64Data = reader.result as string;
-        
-        // 3. Upload to API
-        const response = await fetch("/api/admin/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileData: base64Data,
-          }),
-        });
+    // 2. Upload directly to Supabase Storage
+    try {
+      const supabaseUrl = "https://tswqkbfetbsayjcavuoc.supabase.co";
+      const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzd3FrYmZldGJzYXlqY2F2dW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTE3MjksImV4cCI6MjA5NDk2NzcyOX0.CqCDzFEg_3Blgf-0nTHSMDnuNwzsKK65LNZsjJ7rnec";
+      const bucketName = "Duda-bucket";
+      
+      const ext = file.name.split('.').pop() || 'bin';
+      const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}.${ext}`;
+      const filePath = `uploads/${uniqueName}`;
 
-        if (!response.ok) {
-          throw new Error("Erro no upload");
-        }
+      const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`;
 
-        const data = await response.json();
-        
-        // 4. Update form URL state
-        if (isTeaser) {
-          setForm(prev => ({ ...prev, teaserUrl: data.url }));
-        } else {
-          setForm(prev => ({ ...prev, privateFolderKey: data.url }));
-        }
-      } catch (err) {
-        console.error(err);
-        setFormError(isTeaser ? "Erro ao subir a imagem de teaser." : "Erro ao subir o conteúdo exclusivo.");
-      } finally {
-        if (isTeaser) {
-          setUploadingTeaser(false);
-        } else {
-          setUploadingPrivate(false);
-        }
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${anonKey}`,
+          "apikey": anonKey,
+          "Content-Type": file.type,
+        },
+        body: file, // Send raw file binary directly!
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || "Erro no upload para o Supabase");
       }
-    };
-    reader.readAsDataURL(file);
+
+      // Generate the public URL
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${filePath}`;
+      
+      // Update form URL state
+      if (isTeaser) {
+        setForm(prev => ({ ...prev, teaserUrl: publicUrl }));
+      } else {
+        setForm(prev => ({ ...prev, privateFolderKey: publicUrl }));
+      }
+    } catch (err: any) {
+      console.error(err);
+      setFormError(isTeaser 
+        ? `Erro ao subir a imagem de teaser: ${err.message || err}` 
+        : `Erro ao subir o conteúdo exclusivo: ${err.message || err}`
+      );
+    } finally {
+      if (isTeaser) {
+        setUploadingTeaser(false);
+      } else {
+        setUploadingPrivate(false);
+      }
+    }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
