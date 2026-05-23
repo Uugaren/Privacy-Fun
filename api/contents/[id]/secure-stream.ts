@@ -103,7 +103,10 @@ async function getSupabaseSignedUrl(url: string): Promise<string> {
           const signedUrl = data.signedURL || data.signedUrl;
           if (signedUrl) {
             if (signedUrl.startsWith("/")) {
-              return `${supabaseUrl}${signedUrl}`;
+              if (signedUrl.startsWith("/storage/v1/")) {
+                return `${supabaseUrl}${signedUrl}`;
+              }
+              return `${supabaseUrl}/storage/v1${signedUrl}`;
             }
             return signedUrl;
           }
