@@ -867,16 +867,6 @@ function PremiumPostCard({ content }: { content: any }) {
         </p>
       </div>
 
-      {/* Interaction bar */}
-      <div className="flex items-center gap-4 px-4 py-2.5 border-t border-gray-50 bg-gray-50/50">
-        <button className="flex items-center gap-1.5 text-red-500 transition">
-          <Heart className="h-[18px] w-[18px] fill-red-500 text-red-500" />
-          <span className="text-[14px] font-semibold">124</span>
-        </button>
-        <button className="flex items-center gap-1.5 text-gray-500">
-          <MessageCircle className="h-[18px] w-[18px]" />
-        </button>
-      </div>
     </div>
   );
 }
@@ -895,14 +885,6 @@ function MembersPage() {
   return (
     <div className="min-h-screen bg-gray-50 pt-14 pb-12">
       <div className="mx-auto max-w-[480px] px-4 py-6">
-        
-        <div className="mb-6">
-          <h1 className="text-[24px] font-bold tracking-tight text-black">
-            Bem-vinda, {user.email.split('@')[0]}! ✨
-          </h1>
-          <p className="text-gray-500 text-[15px] mt-1">Sua área exclusiva de conteúdo.</p>
-        </div>
-
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#e89c30]" />
@@ -911,59 +893,27 @@ function MembersPage() {
         ) : (
           <div className="space-y-4">
             {data?.hasAccess ? (
-              <>
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-4 border-b border-gray-100 flex items-center gap-2 bg-gradient-to-r from-orange-50 to-amber-50">
-                    <Sparkles className="h-5 w-5 text-[#e89c30]" />
-                    <h2 className="text-[16px] font-bold text-black">Seus Acessos Ativos</h2>
+              <div className="mt-2">
+                <h2 className="text-[18px] font-bold text-black tracking-tight mb-4">Feed Exclusivo</h2>
+                
+                {loadingContents ? (
+                  <div className="flex flex-col items-center justify-center py-12 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                    <Loader2 className="h-6 w-6 animate-spin text-[#e89c30]" />
+                    <p className="text-gray-400 text-[12px] mt-2">Carregando feed...</p>
                   </div>
-                  <div className="divide-y divide-gray-100">
-                    {data.items?.map((item: any) => (
-                      <div key={item.id} className="p-4 flex items-center justify-between">
-                        <div>
-                          <p className="text-[15px] font-semibold text-black">
-                            Acesso: R$ {item.amount.toFixed(2).replace('.', ',')}
-                          </p>
-                          <p className="text-[13px] text-gray-500 mt-0.5">
-                            Liberado em {new Date(item.grantedAt).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
-                        <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                        </div>
-                      </div>
+                ) : !contents?.length ? (
+                  <div className="p-10 text-center bg-white rounded-2xl border border-gray-200 shadow-sm">
+                    <Film className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500 text-sm font-medium">Nenhum conteúdo publicado ainda.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {contents.map((content: any) => (
+                      <PremiumPostCard key={content.id} content={content} />
                     ))}
                   </div>
-
-                  <div className="p-4 bg-gray-50 border-t border-gray-100">
-                    <p className="text-[14px] text-gray-600 text-center font-medium">
-                      Você tem acesso total ao conteúdo exclusivo.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-8">
-                  <h2 className="text-[18px] font-bold text-black tracking-tight mb-4">Feed Exclusivo</h2>
-                  
-                  {loadingContents ? (
-                    <div className="flex flex-col items-center justify-center py-12 bg-white rounded-2xl border border-gray-200 shadow-sm">
-                      <Loader2 className="h-6 w-6 animate-spin text-[#e89c30]" />
-                      <p className="text-gray-400 text-[12px] mt-2">Carregando feed...</p>
-                    </div>
-                  ) : !contents?.length ? (
-                    <div className="p-10 text-center bg-white rounded-2xl border border-gray-200 shadow-sm">
-                      <Film className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                      <p className="text-gray-500 text-sm font-medium">Nenhum conteúdo publicado ainda.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {contents.map((content: any) => (
-                        <PremiumPostCard key={content.id} content={content} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
+                )}
+              </div>
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
                 <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

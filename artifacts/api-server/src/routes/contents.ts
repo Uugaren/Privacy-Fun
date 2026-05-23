@@ -147,9 +147,14 @@ router.get("/contents/:id/secure-stream", requireAuth, async (req, res) => {
     .update(`${contentId}:${payload.sub}:${expiresAt}`)
     .digest("hex");
 
-  const streamUrl = content.privateFolderKey
-    ? `${content.privateFolderKey}?token=${signature}&expires=${expiresAt}&uid=${payload.sub}`
-    : null;
+  let streamUrl = null;
+  if (content.privateFolderKey) {
+    if (content.privateFolderKey.startsWith("http")) {
+      streamUrl = await getSupabaseSignedUrl(content.privateFolderKey);
+    } else {
+      streamUrl = `${content.privateFolderKey}?token=${signature}&expires=${expiresAt}&uid=${payload.sub}`;
+    }
+  }
 
   req.log.info({ contentId, userId: payload.sub }, "contents: secure stream URL generated");
 
@@ -160,6 +165,56 @@ router.get("/contents/:id/secure-stream", requireAuth, async (req, res) => {
     signature,
   });
 });
+
+async function getSupabaseSignedUrl(url: string): Promise<string> {
+  const supabaseUrl = "https://tswqkbfetbsayjcavuoc.supabase.co";
+  const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzd3FrYmZldGJzYXlqY2F2dW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTE3MjksImV4cCI6MjA5NDk2NzcyOX0.CqCDzFEg_3Blgf-0nTHSMDnuNwzsKK65LNZsjJ7rnec";
+  const bucketName = "Duda-bucket";
+
+  if (url.includes(supabaseUrl) && url.includes(bucketName)) {
+    const bucketSearchStr = `/object/public/${bucketName}/`;
+    const altBucketSearchStr = `/object/${bucketName}/`;
+    
+    let filePath = "";
+    if (url.includes(bucketSearchStr)) {
+      filePath = url.split(bucketSearchStr)[1];
+    } else if (url.includes(altBucketSearchStr)) {
+      filePath = url.split(altBucketSearchStr)[1];
+    }
+
+    if (filePath) {
+      filePath = filePath.split('?')[0];
+      const signUrl = `${supabaseUrl}/storage/v1/object/sign/${bucketName}/${filePath}`;
+      try {
+        const response = await fetch(signUrl, {
+          method: "POST",
+          headers: {
+            "apikey": anonKey,
+            "Authorization": `Bearer ${anonKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ expiresIn: 3600 }),
+        });
+        
+        if (response.ok) {
+          const data: any = await response.json();
+          const signedUrl = data.signedURL || data.signedUrl;
+          if (signedUrl) {
+            if (signedUrl.startsWith("/")) {
+              return `${supabaseUrl}${signedUrl}`;
+            }
+            return signedUrl;
+          }
+        } else {
+          console.error(`Supabase sign URL failed: ${response.status} ${await response.text()}`);
+        }
+      } catch (err) {
+        console.error("Error signing Supabase URL:", err);
+      }
+    }
+  }
+  return url;
+}
 
 // GET /admin/orders — list all orders (admin only)
 router.get("/admin/orders", requireAdmin, async (req, res) => {
