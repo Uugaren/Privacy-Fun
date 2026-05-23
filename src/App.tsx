@@ -45,7 +45,7 @@ import {
 // Register global token getter so every API call automatically includes auth
 setAuthTokenGetter(() => localStorage.getItem("privacy_token"));
 
-import profileImg from "./assets/profile-img.png";
+import profileImg from "./assets/profile-image.png";
 import coverImg from "./assets/cover-img.png";
 import contentImg from "./assets/content-img.png";
 
