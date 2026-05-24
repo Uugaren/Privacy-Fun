@@ -112,6 +112,62 @@ export const getAuthHeaders = (): Record<string, string> => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+// Custom hook to detect country (cached in localStorage)
+export function useCountry() {
+  const [isBR, setIsBR] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const testCountry = urlParams.get("country");
+      if (testCountry) {
+        localStorage.setItem("test_country", testCountry);
+        localStorage.removeItem("detected_country");
+        return testCountry.toLowerCase() === "br";
+      }
+    }
+    const testCountry = localStorage.getItem("test_country");
+    if (testCountry) return testCountry.toLowerCase() === "br";
+    const detected = localStorage.getItem("detected_country");
+    if (detected) return detected === "br";
+    const locale = navigator.language || (navigator.languages && navigator.languages[0]) || "";
+    return locale.toLowerCase().includes("br") || locale.toLowerCase().includes("pt");
+  });
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const testCountryParam = urlParams.get("country");
+    if (testCountryParam) {
+      localStorage.setItem("test_country", testCountryParam);
+      localStorage.removeItem("detected_country");
+      setIsBR(testCountryParam.toLowerCase() === "br");
+      return;
+    }
+    const testCountry = localStorage.getItem("test_country");
+    if (testCountry) {
+      setIsBR(testCountry.toLowerCase() === "br");
+      return;
+    }
+    const detected = localStorage.getItem("detected_country");
+    if (detected) {
+      setIsBR(detected === "br");
+      return;
+    }
+    fetch("/api/country")
+      .then((res) => res.json())
+      .then((data) => {
+        const checkBR = data.country?.toLowerCase() === "br";
+        localStorage.setItem("detected_country", checkBR ? "br" : "intl");
+        setIsBR(checkBR);
+      })
+      .catch(() => {
+        const locale = navigator.language || (navigator.languages && navigator.languages[0]) || "";
+        const checkBR = locale.toLowerCase().includes("br") || locale.toLowerCase().includes("pt");
+        setIsBR(checkBR);
+      });
+  }, []);
+
+  return isBR;
+}
+
 // ============================================================================
 // COMPONENTS
 // ============================================================================
@@ -121,11 +177,18 @@ function Header() {
   const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const isBR = useCountry();
 
   return (
     <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between bg-white border-b border-gray-100 px-4">
       <Link href="/" className="text-[20px] font-extrabold tracking-[-0.08em] text-black">
-        privacy<span className="text-[#f59b32]">.</span>
+        {isBR ? (
+          <>
+            privacy<span className="text-[#f59b32]">.</span>
+          </>
+        ) : (
+          <span className="text-black tracking-normal">only<span className="text-[#00aff0]">fans</span></span>
+        )}
       </Link>
       <div className="flex items-center gap-3">
         {user ? (
@@ -145,14 +208,14 @@ function Header() {
                 <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-gray-100 bg-white shadow-xl z-50 py-1 overflow-hidden">
                   <Link href="/members" onClick={() => setMenuOpen(false)}>
                     <div className="flex items-center w-full px-4 py-2.5 text-[14px] font-medium text-gray-700 hover:bg-gray-50 hover:text-black">
-                      Área de Membros
+                      {isBR ? "Área de Membros" : "Members Area"}
                     </div>
                   </Link>
                   {user?.role === "admin" && (
                     <Link href="/admin" onClick={() => setMenuOpen(false)}>
                       <div className="flex items-center gap-2 w-full px-4 py-2.5 text-[14px] font-medium text-[#e89c30] hover:bg-orange-50">
                         <Shield className="h-4 w-4" />
-                        Painel Admin
+                        {isBR ? "Painel Admin" : "Admin Panel"}
                       </div>
                     </Link>
                   )}
@@ -164,7 +227,7 @@ function Header() {
                     }}
                     className="flex items-center w-full px-4 py-2.5 text-[14px] font-medium text-red-600 hover:bg-red-50"
                   >
-                    Sair
+                    {isBR ? "Sair" : "Log Out"}
                   </button>
                 </div>
               </>
@@ -698,10 +761,28 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-  
+  const [successMsg, setSuccessMsg] = useState("");
+
   const loginMutation = useLogin();
   const { login } = useAuth();
   const [, setLocation] = useLocation();
+  const isBR = useCountry();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get("email");
+    const statusParam = params.get("status");
+    if (emailParam) {
+      setEmail(decodeURIComponent(emailParam));
+    }
+    if (statusParam === "paid") {
+      setSuccessMsg(
+        isBR
+          ? "Assinatura realizada com sucesso! Faça login para acessar."
+          : "Subscription completed successfully! Please sign in to access."
+      );
+    }
+  }, [isBR]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -717,7 +798,16 @@ function LoginPage() {
         setLocation("/members");
       }
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || "E-mail ou senha incorretos.");
+      const apiMsg = err?.response?.data?.message;
+      if (!isBR) {
+        if (!apiMsg || apiMsg.includes("incorret") || apiMsg.includes("não encontrado")) {
+          setErrorMsg("Incorrect email or password.");
+        } else {
+          setErrorMsg(apiMsg);
+        }
+      } else {
+        setErrorMsg(apiMsg || "E-mail ou senha incorretos.");
+      }
     }
   };
 
@@ -727,16 +817,32 @@ function LoginPage() {
         <div className="p-8">
           <div className="text-center mb-8">
             <Link href="/">
-              <div className="inline-block text-[28px] font-extrabold tracking-[-0.08em] text-black hover:opacity-80 transition cursor-pointer">
-                privacy<span className="text-[#f59b32]">.</span>
-              </div>
+              {isBR ? (
+                <div className="inline-block text-[28px] font-extrabold tracking-[-0.08em] text-black hover:opacity-80 transition cursor-pointer">
+                  privacy<span className="text-[#f59b32]">.</span>
+                </div>
+              ) : (
+                <div className="inline-block text-[28px] font-extrabold tracking-normal text-black hover:opacity-80 transition cursor-pointer select-none">
+                  only<span className="text-[#00aff0]">fans</span>
+                </div>
+              )}
             </Link>
-            <p className="text-gray-500 text-[14px] mt-2">Acesse sua área de membros</p>
+            <p className="text-gray-500 text-[14px] mt-2">
+              {isBR ? "Acesse sua área de membros" : "Access your members area"}
+            </p>
           </div>
+
+          {successMsg && (
+            <div className="rounded-lg bg-green-50 p-3 text-[13px] text-green-700 font-medium mb-4">
+              {successMsg}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">E-mail</label>
+              <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">
+                {isBR ? "E-mail" : "Email"}
+              </label>
               <input
                 type="email"
                 required
@@ -746,7 +852,9 @@ function LoginPage() {
               />
             </div>
             <div>
-              <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">Senha</label>
+              <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">
+                {isBR ? "Senha" : "Password"}
+              </label>
               <input
                 type="password"
                 required
@@ -767,14 +875,14 @@ function LoginPage() {
               disabled={loginMutation.isPending}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-black py-3.5 text-[15px] font-bold text-white transition hover:bg-gray-800 disabled:opacity-70 mt-2"
             >
-              {loginMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}
+              {loginMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : (isBR ? "Entrar" : "Sign In")}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <Link href="/">
               <div className="text-[14px] font-medium text-[#f59b32] hover:underline cursor-pointer">
-                Não tem conta? Assinar agora
+                {isBR ? "Não tem conta? Assinar agora" : "Don't have an account? Subscribe now"}
               </div>
             </Link>
           </div>
@@ -1095,7 +1203,7 @@ function AdminOrders() {
         {!data?.length ? (
           <EmptyState icon={ShoppingCart} message="Nenhum pedido encontrado." />
         ) : (
-          data.map((order) => (
+          data.map((order: any) => (
             <div key={order.id} className="bg-white rounded-2xl border border-gray-200 p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
@@ -1154,7 +1262,7 @@ function AdminUsers() {
         {!data?.length ? (
           <EmptyState icon={Users} message="Nenhum usuário cadastrado." />
         ) : (
-          data.map((u) => (
+          data.map((u: any) => (
             <div key={u.id} className="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-3">
               <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-[#e89c30]/70 to-[#f5c842]/70 flex items-center justify-center text-white text-[13px] font-bold uppercase shadow-sm">
                 {u.email.substring(0, 2)}
@@ -1650,7 +1758,7 @@ function AdminContents({
         <EmptyState icon={Film} message="Nenhum conteúdo cadastrado ainda." />
       ) : (
         <div className="space-y-2">
-          {data.map((c) => (
+          {data.map((c: any) => (
             <div key={c.id} className="bg-white rounded-2xl border border-gray-200 p-4 flex items-start gap-3">
               <div
                 className={`shrink-0 h-10 w-10 rounded-xl flex items-center justify-center ${
