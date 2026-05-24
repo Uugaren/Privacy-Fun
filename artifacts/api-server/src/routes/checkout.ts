@@ -91,8 +91,8 @@ router.post("/checkout", async (req, res) => {
             price_data: {
               currency: "usd",
               product_data: {
-                name: "Sophie Rain - Premium Access",
-                description: "Acesso Exclusivo à Área de Membros",
+                name: "Duda Wolfram - Premium Access",
+                description: "Exclusive Access to Members Area",
               },
               unit_amount: Math.round(parsedAmount * 100), // convert to cents
             },

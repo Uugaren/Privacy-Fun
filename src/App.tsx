@@ -504,7 +504,7 @@ function BrazilianHomePage() {
                 <div className="live-border h-[96px] w-[96px] rounded-full border-[3px] border-white overflow-hidden bg-gray-200">
                   <img
                     src={profileImg}
-                    alt="Emilly Faria"
+                    alt="Duda Wolfram"
                     className="h-full w-full object-cover"
                   />
                 </div>
@@ -669,19 +669,19 @@ function BrazilianHomePage() {
 function SubscriptionBox({ onSubscribe }: { onSubscribe: (amount: number) => void }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Assinatura</p>
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Subscription</p>
       
       <div className="rounded-xl border border-gray-100 bg-white p-3 space-y-3 shadow-2xs">
         <div className="flex justify-between items-start">
           <div>
-            <h4 className="text-[13px] font-bold text-black">Oferta limitada</h4>
-            <p className="text-[11px] text-gray-500 mt-0.5">50% de desconto nos primeiros 31 dias!</p>
+            <h4 className="text-[13px] font-bold text-black">Limited offer</h4>
+            <p className="text-[11px] text-gray-500 mt-0.5">50% off for the first 31 days!</p>
           </div>
         </div>
 
         <div className="flex gap-2.5 bg-gray-50 rounded-lg p-2.5 border border-gray-100">
           <div className="h-8 w-8 rounded-full overflow-hidden shrink-0 border border-gray-200">
-            <img src={sophieProfileImg} alt="Sophie Rain avatar" className="w-full h-full object-cover" />
+            <img src={profileImg} alt="Duda Wolfram avatar" className="w-full h-full object-cover" />
           </div>
           <p className="text-[11px] text-gray-600 leading-normal">
             MY BIGGEST SALE EVER!!! only for the next 100 subscribers (9)/100 remaining 🚨 #1 on ONLYFANS for a reason 😜
@@ -692,11 +692,11 @@ function SubscriptionBox({ onSubscribe }: { onSubscribe: (amount: number) => voi
           onClick={() => onSubscribe(5.00)}
           className="w-full flex items-center justify-between px-4 py-3.5 rounded-full bg-[#00aff0] hover:bg-[#009bd6] text-[14px] font-bold text-white transition shadow-sm"
         >
-          <span>ASSINAR</span>
-          <span>$5 por 31 dias</span>
+          <span>SUBSCRIBE</span>
+          <span>$5 for 31 days</span>
         </button>
         
-        <p className="text-center text-[11px] text-gray-400 mt-1">Preço Normal $10 /mês</p>
+        <p className="text-center text-[11px] text-gray-400 mt-1">Normal Price $10/month</p>
       </div>
     </div>
   );
@@ -720,74 +720,75 @@ function InternationalHomePage() {
           {/* Main Column */}
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
             
-            {/* Profile Subheader */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 sticky top-14 bg-white z-10">
-              <div className="flex items-center gap-3">
-                <button className="text-gray-600 hover:text-black transition">
+            {/* Cover Banner with Overlaid Info */}
+            <div className="relative h-96 md:h-[420px] w-full overflow-hidden select-none">
+              <img
+                src={coverImg}
+                alt="Duda Wolfram cover"
+                className="w-full h-full object-cover"
+              />
+              
+              {/* Overlaid Navigation Controls */}
+              <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
+                <button className="h-10 w-10 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition border border-white/15">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                 </button>
-                <div>
-                  <h2 className="text-[16px] font-bold text-black flex items-center gap-1 leading-none">
-                    Sophie Rain
-                    <BadgeCheck className="h-4.5 w-4.5 text-[#00aff0] fill-current shrink-0" />
-                  </h2>
-                  <p className="text-[12px] text-gray-500 mt-1">443 📷 · 40 🎥 · 1.16M ❤️</p>
-                </div>
+                <button className="h-10 w-10 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition border border-white/15">
+                  <Ellipsis className="h-5 w-5" />
+                </button>
               </div>
-              <button className="h-8 w-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-50 transition">
-                <Ellipsis className="h-5 w-5" />
-              </button>
-            </div>
 
-            {/* Cover Banner */}
-            <div className="relative h-44 md:h-60 w-full bg-gray-200">
-              <img
-                src={sophieCoverImg}
-                alt="Sophie Rain cover"
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Profile Info & Avatar */}
-            <div className="px-4 pb-5 relative">
-              <div className="flex justify-between items-end -mt-12 md:-mt-16 mb-4">
-                <div className="relative h-[96px] w-[96px] md:h-[120px] md:w-[120px] rounded-full border-4 border-white overflow-hidden bg-gray-200 shadow-md">
-                  <img
-                    src={sophieProfileImg}
-                    alt="Sophie Rain"
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full bg-[#23c55e] border-2 border-white" />
-                </div>
+              {/* Overlay for Name, Avatar, Bio, and Buttons */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-black/15 flex flex-col justify-end p-4 md:p-6 text-white z-10">
                 
-                <div className="flex gap-2">
-                  <button className="h-10 w-10 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.371 1.24.588 1.81l-3.97 2.883a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.971-2.883a1 1 0 00-1.18 0l-3.97 2.883c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118l-3.97-2.883c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                  </button>
-                  <button className="h-10 w-10 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                    </svg>
-                  </button>
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                  <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                    <div className="relative h-20 w-20 md:h-24 md:w-24 rounded-full border-2 border-white overflow-hidden bg-gray-200 shadow-md shrink-0">
+                      <img src={profileImg} alt="Duda Wolfram" className="w-full h-full object-cover" />
+                      <span className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full bg-[#23c55e] border border-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <h1 className="text-[20px] md:text-[24px] font-bold text-white flex items-center gap-1 leading-none drop-shadow">
+                        Duda Wolfram
+                        <BadgeCheck className="h-5 w-5 text-[#00aff0] fill-current" />
+                      </h1>
+                      <p className="text-[13px] md:text-[14px] text-gray-300 mt-1.5 font-medium drop-shadow">
+                        @duda_wolfram · <span className="text-[#00aff0] font-semibold">Active now</span>
+                      </p>
+                      {/* Overlaid Count Information */}
+                      <p className="text-[12px] md:text-[13px] text-gray-400 mt-1 font-semibold flex items-center gap-1.5 drop-shadow">
+                        <span>513 posts</span>
+                        <span>·</span>
+                        <span>1,323 media</span>
+                        <span>·</span>
+                        <span>364.6K likes</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Profile Actions */}
+                  <div className="flex gap-2 self-start md:self-auto mt-2 md:mt-0 shrink-0">
+                    <button className="h-9 w-9 flex items-center justify-center rounded-full border border-white/20 bg-black/30 text-white hover:bg-black/50 transition">
+                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.371 1.24.588 1.81l-3.97 2.883a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.971-2.883a1 1 0 00-1.18 0l-3.97 2.883c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118l-3.97-2.883c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
+                    </button>
+                    <button className="h-9 w-9 flex items-center justify-center rounded-full border border-white/20 bg-black/30 text-white hover:bg-black/50 transition">
+                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <h1 className="text-[20px] font-bold text-black flex items-center gap-1 tracking-tight">
-                  Sophie Rain
-                  <BadgeCheck className="h-5 w-5 text-[#00aff0] fill-current" />
-                </h1>
-                <p className="text-[14px] text-gray-500">@sophieraiin · <span className="text-[#00aff0]">Disponível agora</span></p>
-              </div>
+                {/* Bio text block overlay */}
+                <div className="mt-4 text-[13px] md:text-[14px] text-gray-200 space-y-1.5 leading-relaxed max-w-xl drop-shadow">
+                  <p>Only those who dare to uncover every little secret of their Blonde... coming? 😜</p>
+                  <button className="text-[#00aff0] font-bold hover:underline text-[12px] md:text-[13px] block mt-0.5">More info</button>
+                </div>
 
-              <div className="mt-4 text-[14px] text-gray-700 space-y-2 leading-relaxed">
-                <p>where you see my <span className="font-bold">NAUGHTY SIDE</span> 😈</p>
-                <p>come find out why im the <span className="text-[#00aff0]">#1 girl on onlyfans</span> 🤭 📝</p>
-                <button className="text-[#00aff0] font-bold hover:underline text-[13px] block mt-1">Mais informações</button>
               </div>
             </div>
 
@@ -798,12 +799,12 @@ function InternationalHomePage() {
 
             {/* Subscription Packs */}
             <div className="px-4 py-3 border-t border-gray-100">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Pacotes de assinatura</p>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Subscription packages</p>
               <button
                 onClick={() => openCheckout(25.50)}
                 className="w-full flex items-center justify-between px-4 py-3 rounded-full bg-[#00aff0] hover:bg-[#009bd6] text-[14px] font-bold text-white transition shadow-sm"
               >
-                <span>3 MESES (15% off)</span>
+                <span>3 MONTHS (15% off)</span>
                 <span>$25.50 total</span>
               </button>
             </div>
@@ -818,7 +819,7 @@ function InternationalHomePage() {
                     : "text-gray-500 hover:text-gray-800"
                 }`}
               >
-                329 Postagens
+                513 Posts
               </button>
               <button
                 onClick={() => setActiveTab("media")}
@@ -828,7 +829,7 @@ function InternationalHomePage() {
                     : "text-gray-500 hover:text-gray-800"
                 }`}
               >
-                483 Mídia
+                1,323 Media
               </button>
             </div>
 
@@ -837,9 +838,9 @@ function InternationalHomePage() {
               <div className="h-16 w-16 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 mb-3">
                 <Lock className="h-6 w-6 text-gray-400" />
               </div>
-              <p className="text-[14px] font-bold text-black mb-1">Inscrição necessária</p>
+              <p className="text-[14px] font-bold text-black mb-1">Subscription required</p>
               <p className="text-[12px] text-gray-500 px-6 text-center max-w-xs">
-                Inscreva-se para ter acesso completo a todas as fotos e vídeos exclusivos de Sophie Rain.
+                Subscribe to get full access to Duda Wolfram's exclusive photos and videos.
               </p>
             </div>
 
@@ -1092,11 +1093,11 @@ function PremiumPostCard({ content }: { content: any }) {
       <div className="flex items-start justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 overflow-hidden rounded-full border border-gray-200 bg-gradient-to-br from-[#e89c30] to-[#f5c842] flex items-center justify-center text-white text-[12px] font-bold uppercase shadow-sm">
-            EF
+            DW
           </div>
           <div>
-            <p className="text-[14px] font-semibold text-black">Emilly Faria</p>
-            <p className="text-[12px] text-gray-500">@millyfaria4</p>
+            <p className="text-[14px] font-semibold text-black">Duda Wolfram</p>
+            <p className="text-[12px] text-gray-500">@duda_wolfram</p>
           </div>
         </div>
       </div>
