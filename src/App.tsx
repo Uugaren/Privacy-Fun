@@ -720,75 +720,97 @@ function InternationalHomePage() {
           {/* Main Column */}
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
             
-            {/* Cover Banner with Overlaid Info */}
-            <div className="relative h-96 md:h-[420px] w-full overflow-hidden select-none">
+            {/* Cover Banner Section */}
+            <div className="relative h-48 sm:h-64 md:h-80 w-full overflow-hidden select-none">
               <img
                 src={coverImg}
                 alt="Duda Wolfram cover"
                 className="w-full h-full object-cover"
               />
               
-              {/* Overlaid Navigation Controls */}
-              <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
-                <button className="h-10 w-10 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition border border-white/15">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                </button>
-                <button className="h-10 w-10 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition border border-white/15">
-                  <Ellipsis className="h-5 w-5" />
+              {/* Subtle top gradient shadow for text contrast */}
+              <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
+
+              {/* Overlaid Header controls on top of cover */}
+              <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-3 sm:p-4 text-white">
+                <div className="flex items-center gap-3">
+                  <button className="h-9 w-9 flex items-center justify-center rounded-full text-white hover:bg-white/10 transition shrink-0">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                  </button>
+                  <div>
+                    <h2 className="text-[15px] sm:text-[17px] font-bold text-white flex items-center gap-1 leading-none drop-shadow-md">
+                      Duda Wolfram
+                      <BadgeCheck className="h-4.5 w-4.5 text-[#00aff0] fill-current shrink-0" />
+                    </h2>
+                    {/* OnlyFans icon stats row overlaid at top left */}
+                    <p className="text-[11px] sm:text-[12px] text-white/95 mt-1 font-medium flex items-center gap-1.5 drop-shadow-sm">
+                      <Images className="h-3 w-3 shrink-0" />
+                      <span>443</span>
+                      <span>·</span>
+                      <Play className="h-3.5 w-3.5 shrink-0" />
+                      <span>40</span>
+                      <span>·</span>
+                      <Heart className="h-3.5 w-3.5 shrink-0" />
+                      <span>1.16M</span>
+                    </p>
+                  </div>
+                </div>
+                <button className="h-9 w-9 flex items-center justify-center rounded-full text-white hover:bg-white/10 transition">
+                  <Ellipsis className="h-5 w-5 rotate-90" />
                 </button>
               </div>
+            </div>
 
-              {/* Overlay for Name, Avatar, Bio, and Buttons */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-black/15 flex flex-col justify-end p-4 md:p-6 text-white z-10">
-                
-                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                  <div className="flex items-center gap-3 md:gap-4 min-w-0">
-                    <div className="relative h-20 w-20 md:h-24 md:w-24 rounded-full border-2 border-white overflow-hidden bg-gray-200 shadow-md shrink-0">
-                      <img src={profileImg} alt="Duda Wolfram" className="w-full h-full object-cover" />
-                      <span className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full bg-[#23c55e] border border-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <h1 className="text-[20px] md:text-[24px] font-bold text-white flex items-center gap-1 leading-none drop-shadow">
-                        Duda Wolfram
-                        <BadgeCheck className="h-5 w-5 text-[#00aff0] fill-current" />
-                      </h1>
-                      <p className="text-[13px] md:text-[14px] text-gray-300 mt-1.5 font-medium drop-shadow">
-                        @duda_wolfram · <span className="text-[#00aff0] font-semibold">Active now</span>
-                      </p>
-                      {/* Overlaid Count Information */}
-                      <p className="text-[12px] md:text-[13px] text-gray-400 mt-1 font-semibold flex items-center gap-1.5 drop-shadow">
-                        <span>513 posts</span>
-                        <span>·</span>
-                        <span>1,323 media</span>
-                        <span>·</span>
-                        <span>364.6K likes</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Profile Actions */}
-                  <div className="flex gap-2 self-start md:self-auto mt-2 md:mt-0 shrink-0">
-                    <button className="h-9 w-9 flex items-center justify-center rounded-full border border-white/20 bg-black/30 text-white hover:bg-black/50 transition">
-                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.371 1.24.588 1.81l-3.97 2.883a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.971-2.883a1 1 0 00-1.18 0l-3.97 2.883c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118l-3.97-2.883c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                      </svg>
-                    </button>
-                    <button className="h-9 w-9 flex items-center justify-center rounded-full border border-white/20 bg-black/30 text-white hover:bg-black/50 transition">
-                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                      </svg>
-                    </button>
-                  </div>
+            {/* Profile Avatar and Info Block below cover */}
+            <div className="px-4 pb-5 bg-white relative">
+              {/* Profile Avatar overlapping cover border */}
+              <div className="flex items-end justify-between -mt-10 sm:-mt-12 md:-mt-14 mb-3 relative z-10">
+                <div className="relative h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 rounded-full border-4 border-white overflow-hidden bg-gray-200 shadow-sm shrink-0">
+                  <img src={profileImg} alt="Duda Wolfram" className="w-full h-full object-cover" />
+                  {/* Green active status indicator dot */}
+                  <span className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full bg-[#23c55e] border-[2px] border-white" />
                 </div>
 
-                {/* Bio text block overlay */}
-                <div className="mt-4 text-[13px] md:text-[14px] text-gray-200 space-y-1.5 leading-relaxed max-w-xl drop-shadow">
-                  <p>Only those who dare to uncover every little secret of their Blonde... coming? 😜</p>
-                  <button className="text-[#00aff0] font-bold hover:underline text-[12px] md:text-[13px] block mt-0.5">More info</button>
+                {/* Circular Action Buttons */}
+                <div className="flex gap-2.5 pb-2">
+                  <button className="h-10 w-10 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-50 text-[#00aff0] transition shadow-2xs">
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                    </svg>
+                  </button>
+                  <button className="h-10 w-10 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-50 text-[#00aff0] transition shadow-2xs">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Creator details, bio, links */}
+              <div className="space-y-3 mt-2">
+                <div>
+                  <h1 className="text-[19px] sm:text-[21px] font-bold text-black flex items-center gap-1 leading-none">
+                    Duda Wolfram
+                    <BadgeCheck className="h-5.5 w-5.5 text-[#00aff0] fill-current shrink-0" />
+                  </h1>
+                  <p className="text-[13px] sm:text-[14px] text-gray-500 mt-1.5 flex items-center gap-1.5">
+                    <span>@duda_wolfram</span>
+                    <span className="text-gray-300">·</span>
+                    <span className="text-gray-400 font-medium">Active now</span>
+                  </p>
                 </div>
 
+                <div className="text-[14px] sm:text-[15px] leading-relaxed text-gray-800 space-y-2">
+                  <p>where you see my <span className="font-bold uppercase">NAUGHTY SIDE</span> 😈</p>
+                  <p className="text-gray-400 text-[13px] sm:text-[14px]">
+                    come find out why im the <span className="text-[#00aff0] font-medium">#1 girl on onlyfans</span> 🫣 📈
+                  </p>
+                  <button className="text-[#00aff0] font-semibold hover:underline block text-[13px] sm:text-[14px] mt-1">
+                    More info
+                  </button>
+                </div>
               </div>
             </div>
 
