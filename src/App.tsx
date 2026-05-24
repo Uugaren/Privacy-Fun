@@ -109,7 +109,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 // Helper to get auth headers for API calls
-export const getAuthHeaders = (): Record<string, string> => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem("privacy_token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
@@ -123,11 +123,29 @@ function Header() {
   const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isBR, setIsBR] = useState<boolean>(true);
+
+  useEffect(() => {
+    // Check country for navbar brand rendering
+    const testCountry = localStorage.getItem("test_country");
+    if (testCountry) {
+      setIsBR(testCountry.toLowerCase() === "br");
+      return;
+    }
+    const locale = navigator.language || "";
+    setIsBR(locale.toLowerCase().includes("br") || locale.toLowerCase().includes("pt"));
+  }, []);
 
   return (
     <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between bg-white border-b border-gray-100 px-4">
       <Link href="/" className="text-[20px] font-extrabold tracking-[-0.08em] text-black">
-        privacy<span className="text-[#f59b32]">.</span>
+        {isBR ? (
+          <>
+            privacy<span className="text-[#f59b32]">.</span>
+          </>
+        ) : (
+          <span className="text-black tracking-normal">only<span className="text-[#00aff0]">fans</span></span>
+        )}
       </Link>
       <div className="flex items-center gap-3">
         {user ? (
@@ -875,7 +893,7 @@ function InternationalHomePage() {
             </div>
             
             <div className="flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-gray-400 justify-center">
-              <a href="#" className="hover:underline">Privacy</a>
+              <a href="#" className="hover:underline">onlyfans</a>
               <span>·</span>
               <a href="#" className="hover:underline">Cookie Notice</a>
               <span>·</span>
@@ -914,13 +932,17 @@ function HomePage() {
     fetch(fetchUrl)
       .then((res) => res.json())
       .then((data) => {
-        setIsBR(data.country?.toLowerCase() === "br");
+        const checkBR = data.country?.toLowerCase() === "br";
+        setIsBR(checkBR);
+        document.title = checkBR ? "Privacy | Duda Wolfram" : "OnlyFans";
       })
       .catch(() => {
         // 2. Fallback to browser language if API check fails (e.g. running Vite locally without Vercel Dev)
         const locale = navigator.language || (navigator.languages && navigator.languages[0]) || "";
         const lowerLocale = locale.toLowerCase();
-        setIsBR(lowerLocale.includes("br") || lowerLocale.includes("pt"));
+        const checkBR = lowerLocale.includes("br") || lowerLocale.includes("pt");
+        setIsBR(checkBR);
+        document.title = checkBR ? "Privacy | Duda Wolfram" : "OnlyFans";
       });
   }, []);
 
