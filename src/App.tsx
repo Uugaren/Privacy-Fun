@@ -558,7 +558,7 @@ function BrazilianHomePage() {
               </div>
 
               <p className="mt-3 text-[15px] leading-relaxed text-black text-center">
-                Só fica quem tem coragem de desvendar cada segredinho da sua Loirinha.... vem? 😜
+                Aqui você vai ver meus vídeos transando gostoso, anal, squirt e muito mais 💦 Vem conhecer melhor sua loirinha 😜
               </p>
             </div>
           </div>
