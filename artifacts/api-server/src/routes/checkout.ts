@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
+import Stripe from "stripe";
 import { db, ordersTable, usersTable } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -23,18 +24,11 @@ interface NexusPixResponse {
 }
 
 router.post("/checkout", async (req, res) => {
-  const apiKey = process.env["NEXUS_WEBHOOK_SECRET"];
-
-  if (!apiKey) {
-    req.log.error("checkout: NEXUS_WEBHOOK_SECRET is not set");
-    res.status(500).json({ error: "Server misconfiguration: payment key not set" });
-    return;
-  }
-
-  const { email, password, amount } = req.body as {
+  const { email, password, amount, paymentMethod } = req.body as {
     email?: unknown;
     password?: unknown;
     amount?: unknown;
+    paymentMethod?: "pix" | "stripe";
   };
 
   if (!email || typeof email !== "string" || !email.includes("@")) {
@@ -49,7 +43,7 @@ router.post("/checkout", async (req, res) => {
 
   const parsedAmount = Number(amount);
   if (!amount || isNaN(parsedAmount) || parsedAmount < 1) {
-    res.status(400).json({ error: "Valor inválido — mínimo R$ 1,00" });
+    res.status(400).json({ error: "Valor inválido" });
     return;
   }
 
@@ -71,6 +65,75 @@ router.post("/checkout", async (req, res) => {
     req.log.info({ email: normalizedEmail }, "checkout: new user created");
   } else {
     req.log.info({ email: normalizedEmail }, "checkout: existing user, skipping creation");
+  }
+
+  if (paymentMethod === "stripe") {
+    const stripeKey = process.env["STRIPE_SECRET_KEY"];
+    if (!stripeKey) {
+      req.log.error("checkout: STRIPE_SECRET_KEY is not set");
+      res.status(500).json({ error: "Server misconfiguration: Stripe key not set" });
+      return;
+    }
+
+    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" as any });
+
+    const appUrl = process.env["VERCEL_PROJECT_PRODUCTION_URL"]
+      ? `https://${process.env["VERCEL_PROJECT_PRODUCTION_URL"]}`
+      : "http://localhost:5173";
+
+    try {
+      req.log.info({ email: normalizedEmail, amount: parsedAmount }, "checkout: initiating Stripe session");
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: "Sophie Rain - Premium Access",
+                description: "Acesso Exclusivo à Área de Membros",
+              },
+              unit_amount: Math.round(parsedAmount * 100), // convert to cents
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        customer_email: normalizedEmail,
+        success_url: `${appUrl}/login?status=paid&email=${encodeURIComponent(normalizedEmail)}`,
+        cancel_url: `${appUrl}/`,
+      });
+
+      // Insert pending order in db
+      await db.insert(ordersTable).values({
+        externalId: session.id, // Store stripe session ID as externalId
+        email: normalizedEmail,
+        status: "pending",
+        amount: Math.round(parsedAmount * 100),
+        rawPayload: JSON.stringify(session),
+      });
+
+      req.log.info({ sessionId: session.id, amount: parsedAmount }, "checkout: Stripe session created");
+
+      res.json({
+        paymentMethod: "stripe",
+        checkoutUrl: session.url,
+      });
+      return;
+    } catch (err: any) {
+      req.log.error({ err }, "checkout: failed to create Stripe session");
+      res.status(502).json({ error: "Erro ao iniciar pagamento com Stripe" });
+      return;
+    }
+  }
+
+  const apiKey = process.env["NEXUS_WEBHOOK_SECRET"];
+
+  if (!apiKey) {
+    req.log.error("checkout: NEXUS_WEBHOOK_SECRET is not set");
+    res.status(500).json({ error: "Server misconfiguration: payment key not set" });
+    return;
   }
 
   const externalId = crypto.randomUUID();

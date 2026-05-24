@@ -14,7 +14,8 @@
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.21.0"
+    "pg": "^8.21.0",
+    "stripe": "^22.1.1"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

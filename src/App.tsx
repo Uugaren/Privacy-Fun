@@ -48,6 +48,8 @@ setAuthTokenGetter(() => localStorage.getItem("privacy_token"));
 import profileImg from "./assets/profile-image.png";
 import coverImg from "./assets/cover-img.png";
 import contentImg from "./assets/content-img.png";
+import sophieProfileImg from "./assets/sophie-profile.png";
+import sophieCoverImg from "./assets/sophie-cover.png";
 
 // ============================================================================
 // QUERY CLIENT
@@ -184,11 +186,13 @@ function Header() {
 function CheckoutModal({
   isOpen,
   onClose,
-  amount
+  amount,
+  paymentMethod = "pix"
 }: {
   isOpen: boolean;
   onClose: () => void;
   amount: number;
+  paymentMethod?: "pix" | "stripe";
 }) {
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState("");
@@ -219,25 +223,48 @@ function CheckoutModal({
     setErrorMsg("");
 
     if (password.length < 6) {
-      setErrorMsg("A senha deve ter no mínimo 6 caracteres.");
+      setErrorMsg(
+        paymentMethod === "stripe"
+          ? "Password must be at least 6 characters."
+          : "A senha deve ter no mínimo 6 caracteres."
+      );
       return;
     }
     if (password !== confirmPassword) {
-      setErrorMsg("As senhas não coincidem.");
+      setErrorMsg(
+        paymentMethod === "stripe"
+          ? "Passwords do not match."
+          : "As senhas não coincidem."
+      );
       return;
     }
 
     try {
-      await checkoutMutation.mutateAsync({
+      const response = await checkoutMutation.mutateAsync({
         data: {
           email,
           password,
-          amount
+          amount,
+          // @ts-ignore
+          paymentMethod
         }
       });
+      
+      // If Stripe, redirect to Checkout Session URL
+      // @ts-ignore
+      if (paymentMethod === "stripe" && response.checkoutUrl) {
+        // @ts-ignore
+        window.location.href = response.checkoutUrl;
+        return;
+      }
       setStep(2);
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || "Erro ao gerar cobrança. Tente novamente.");
+      setErrorMsg(
+        err?.response?.data?.message ||
+        (paymentMethod === "stripe"
+          ? "Error generating checkout. Please try again."
+          : "Erro ao gerar cobrança. Tente novamente.")
+      );
     }
   };
 
@@ -248,6 +275,8 @@ function CheckoutModal({
       setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  const isStripe = paymentMethod === "stripe";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -263,10 +292,16 @@ function CheckoutModal({
         <div className="px-6 pb-6 pt-8">
           <div className="text-center mb-6">
             <h2 className="text-[20px] font-bold text-black tracking-tight">
-              {step === 1 ? "Complete sua assinatura" : "Pagamento via Pix"}
+              {step === 1
+                ? (isStripe ? "Complete your subscription" : "Complete sua assinatura")
+                : "Pagamento via Pix"}
             </h2>
             <p className="text-[14px] text-gray-500 mt-1">
-              {step === 1 ? `Plano selecionado: R$ ${amount.toFixed(2).replace('.', ',')}` : "Escaneie ou copie o código abaixo"}
+              {step === 1
+                ? (isStripe
+                    ? `Selected package: $${amount.toFixed(2)}`
+                    : `Plano selecionado: R$ ${amount.toFixed(2).replace('.', ',')}`)
+                : "Escaneie ou copie o código abaixo"}
             </p>
           </div>
 
@@ -276,26 +311,26 @@ function CheckoutModal({
                 <input
                   type="email"
                   required
-                  placeholder="Seu melhor e-mail"
+                  placeholder={isStripe ? "Your email address" : "Seu melhor e-mail"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] outline-none transition focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30]"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] outline-none transition focus:border-[#00aff0] focus:bg-white focus:ring-1 focus:ring-[#00aff0]"
                 />
                 <input
                   type="password"
                   required
-                  placeholder="Crie uma senha (min. 6 caracteres)"
+                  placeholder={isStripe ? "Create a password (min. 6 characters)" : "Crie uma senha (min. 6 caracteres)"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] outline-none transition focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30]"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] outline-none transition focus:border-[#00aff0] focus:bg-white focus:ring-1 focus:ring-[#00aff0]"
                 />
                 <input
                   type="password"
                   required
-                  placeholder="Confirme sua senha"
+                  placeholder={isStripe ? "Confirm password" : "Confirme sua senha"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] outline-none transition focus:border-[#e89c30] focus:bg-white focus:ring-1 focus:ring-[#e89c30]"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] outline-none transition focus:border-[#00aff0] focus:bg-white focus:ring-1 focus:ring-[#00aff0]"
                 />
               </div>
 
@@ -308,12 +343,16 @@ function CheckoutModal({
               <button
                 type="submit"
                 disabled={checkoutMutation.isPending}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#23c55e] py-3.5 text-[15px] font-bold text-white transition hover:bg-[#1fa951] disabled:opacity-70 mt-2"
+                className={`w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-[15px] font-bold text-white transition disabled:opacity-70 mt-2 ${
+                  isStripe
+                    ? "bg-[#00aff0] hover:bg-[#009bd6]"
+                    : "bg-[#23c55e] hover:bg-[#1fa951]"
+                }`}
               >
                 {checkoutMutation.isPending ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  "Gerar Pix"
+                  isStripe ? "Pay with Card" : "Gerar Pix"
                 )}
               </button>
             </form>
@@ -402,7 +441,7 @@ interface Toast {
   exiting: boolean;
 }
 
-function HomePage() {
+function BrazilianHomePage() {
   const [activeTab, setActiveTab] = useState<"fotos" | "videos">("fotos");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [notifIndex, setNotifIndex] = useState(0);
@@ -621,9 +660,256 @@ function HomePage() {
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         amount={checkoutAmount}
+        paymentMethod="pix"
       />
     </>
   );
+}
+
+function SubscriptionBox({ onSubscribe }: { onSubscribe: (amount: number) => void }) {
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Assinatura</p>
+      
+      <div className="rounded-xl border border-gray-100 bg-white p-3 space-y-3 shadow-2xs">
+        <div className="flex justify-between items-start">
+          <div>
+            <h4 className="text-[13px] font-bold text-black">Oferta limitada</h4>
+            <p className="text-[11px] text-gray-500 mt-0.5">50% de desconto nos primeiros 31 dias!</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2.5 bg-gray-50 rounded-lg p-2.5 border border-gray-100">
+          <div className="h-8 w-8 rounded-full overflow-hidden shrink-0 border border-gray-200">
+            <img src={sophieProfileImg} alt="Sophie Rain avatar" className="w-full h-full object-cover" />
+          </div>
+          <p className="text-[11px] text-gray-600 leading-normal">
+            MY BIGGEST SALE EVER!!! only for the next 100 subscribers (9)/100 remaining 🚨 #1 on ONLYFANS for a reason 😜
+          </p>
+        </div>
+
+        <button
+          onClick={() => onSubscribe(5.00)}
+          className="w-full flex items-center justify-between px-4 py-3.5 rounded-full bg-[#00aff0] hover:bg-[#009bd6] text-[14px] font-bold text-white transition shadow-sm"
+        >
+          <span>ASSINAR</span>
+          <span>$5 por 31 dias</span>
+        </button>
+        
+        <p className="text-center text-[11px] text-gray-400 mt-1">Preço Normal $10 /mês</p>
+      </div>
+    </div>
+  );
+}
+
+function InternationalHomePage() {
+  const [activeTab, setActiveTab] = useState<"posts" | "media">("posts");
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutAmount, setCheckoutAmount] = useState(5.00);
+
+  const openCheckout = (amount: number) => {
+    setCheckoutAmount(amount);
+    setIsCheckoutOpen(true);
+  };
+
+  return (
+    <>
+      <main className="min-h-screen bg-gray-50 pt-14 pb-12">
+        <div className="mx-auto max-w-[950px] px-4 py-6 grid grid-cols-1 md:grid-cols-[1fr_340px] gap-6">
+          
+          {/* Main Column */}
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+            
+            {/* Profile Subheader */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 sticky top-14 bg-white z-10">
+              <div className="flex items-center gap-3">
+                <button className="text-gray-600 hover:text-black transition">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                </button>
+                <div>
+                  <h2 className="text-[16px] font-bold text-black flex items-center gap-1 leading-none">
+                    Sophie Rain
+                    <BadgeCheck className="h-4.5 w-4.5 text-[#00aff0] fill-current shrink-0" />
+                  </h2>
+                  <p className="text-[12px] text-gray-500 mt-1">443 📷 · 40 🎥 · 1.16M ❤️</p>
+                </div>
+              </div>
+              <button className="h-8 w-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-50 transition">
+                <Ellipsis className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Cover Banner */}
+            <div className="relative h-44 md:h-60 w-full bg-gray-200">
+              <img
+                src={sophieCoverImg}
+                alt="Sophie Rain cover"
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Profile Info & Avatar */}
+            <div className="px-4 pb-5 relative">
+              <div className="flex justify-between items-end -mt-12 md:-mt-16 mb-4">
+                <div className="relative h-[96px] w-[96px] md:h-[120px] md:w-[120px] rounded-full border-4 border-white overflow-hidden bg-gray-200 shadow-md">
+                  <img
+                    src={sophieProfileImg}
+                    alt="Sophie Rain"
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full bg-[#23c55e] border-2 border-white" />
+                </div>
+                
+                <div className="flex gap-2">
+                  <button className="h-10 w-10 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.371 1.24.588 1.81l-3.97 2.883a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.971-2.883a1 1 0 00-1.18 0l-3.97 2.883c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118l-3.97-2.883c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                  </button>
+                  <button className="h-10 w-10 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <h1 className="text-[20px] font-bold text-black flex items-center gap-1 tracking-tight">
+                  Sophie Rain
+                  <BadgeCheck className="h-5 w-5 text-[#00aff0] fill-current" />
+                </h1>
+                <p className="text-[14px] text-gray-500">@sophieraiin · <span className="text-[#00aff0]">Disponível agora</span></p>
+              </div>
+
+              <div className="mt-4 text-[14px] text-gray-700 space-y-2 leading-relaxed">
+                <p>where you see my <span className="font-bold">NAUGHTY SIDE</span> 😈</p>
+                <p>come find out why im the <span className="text-[#00aff0]">#1 girl on onlyfans</span> 🤭 📝</p>
+                <button className="text-[#00aff0] font-bold hover:underline text-[13px] block mt-1">Mais informações</button>
+              </div>
+            </div>
+
+            {/* Subscription Box - Mobile only */}
+            <div className="p-4 border-t border-gray-100 md:hidden bg-gray-50/50">
+              <SubscriptionBox onSubscribe={openCheckout} />
+            </div>
+
+            {/* Subscription Packs */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Pacotes de assinatura</p>
+              <button
+                onClick={() => openCheckout(25.50)}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-full bg-[#00aff0] hover:bg-[#009bd6] text-[14px] font-bold text-white transition shadow-sm"
+              >
+                <span>3 MESES (15% off)</span>
+                <span>$25.50 total</span>
+              </button>
+            </div>
+
+            {/* Post Tabs */}
+            <div className="flex border-t border-gray-100 mt-2">
+              <button
+                onClick={() => setActiveTab("posts")}
+                className={`flex-1 py-3 text-center text-[13px] font-bold transition uppercase tracking-wider ${
+                  activeTab === "posts"
+                    ? "text-[#00aff0] border-b-2 border-[#00aff0]"
+                    : "text-gray-500 hover:text-gray-800"
+                }`}
+              >
+                329 Postagens
+              </button>
+              <button
+                onClick={() => setActiveTab("media")}
+                className={`flex-1 py-3 text-center text-[13px] font-bold transition uppercase tracking-wider ${
+                  activeTab === "media"
+                    ? "text-[#00aff0] border-b-2 border-[#00aff0]"
+                    : "text-gray-500 hover:text-gray-800"
+                }`}
+              >
+                483 Mídia
+              </button>
+            </div>
+
+            {/* Locked Feed Block */}
+            <div className="bg-gray-50/50 py-16 flex flex-col items-center justify-center border-t border-gray-100">
+              <div className="h-16 w-16 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 mb-3">
+                <Lock className="h-6 w-6 text-gray-400" />
+              </div>
+              <p className="text-[14px] font-bold text-black mb-1">Inscrição necessária</p>
+              <p className="text-[12px] text-gray-500 px-6 text-center max-w-xs">
+                Inscreva-se para ter acesso completo a todas as fotos e vídeos exclusivos de Sophie Rain.
+              </p>
+            </div>
+
+          </div>
+
+          {/* Sidebar Column (Desktop Only) */}
+          <div className="hidden md:block space-y-4">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-4">
+              <SubscriptionBox onSubscribe={openCheckout} />
+            </div>
+            
+            <div className="flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-gray-400 justify-center">
+              <a href="#" className="hover:underline">Privacy</a>
+              <span>·</span>
+              <a href="#" className="hover:underline">Cookie Notice</a>
+              <span>·</span>
+              <a href="#" className="hover:underline">Terms of Service</a>
+            </div>
+          </div>
+
+        </div>
+      </main>
+
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        amount={checkoutAmount}
+        paymentMethod="stripe"
+      />
+    </>
+  );
+}
+
+function HomePage() {
+  const [isBR, setIsBR] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Read test country from URL query parameter (e.g. ?country=US)
+    const urlParams = new URLSearchParams(window.location.search);
+    const testCountry = urlParams.get("country");
+    if (testCountry) {
+      localStorage.setItem("test_country", testCountry);
+    }
+
+    const countryToFetch = localStorage.getItem("test_country") || "";
+    const fetchUrl = countryToFetch ? `/api/country?country=${countryToFetch}` : "/api/country";
+
+    // 1. Try to fetch the country code from Vercel Geolocation API first
+    fetch(fetchUrl)
+      .then((res) => res.json())
+      .then((data) => {
+        setIsBR(data.country?.toLowerCase() === "br");
+      })
+      .catch(() => {
+        // 2. Fallback to browser language if API check fails (e.g. running Vite locally without Vercel Dev)
+        const locale = navigator.language || (navigator.languages && navigator.languages[0]) || "";
+        const lowerLocale = locale.toLowerCase();
+        setIsBR(lowerLocale.includes("br") || lowerLocale.includes("pt"));
+      });
+  }, []);
+
+  if (isBR === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#e89c30]" />
+      </div>
+    );
+  }
+
+  return isBR ? <BrazilianHomePage /> : <InternationalHomePage />;
 }
 
 function PostCard({ likeCount, onUnlock }: { likeCount: number; onUnlock: () => void }) {
