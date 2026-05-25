@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { desc } from "drizzle-orm";
 import { db, contentsTable } from "../lib/db.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -17,7 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       createdAt: contentsTable.createdAt,
     })
     .from(contentsTable)
-    .orderBy(contentsTable.createdAt);
+    .orderBy(desc(contentsTable.createdAt));
 
   res.json(contents.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() })));
 }

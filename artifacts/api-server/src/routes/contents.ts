@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db, contentsTable, userAccessTable, ordersTable, usersTable } from "@workspace/db";
 import { requireAuth, requireAdmin, type AuthedRequest } from "../middlewares/auth.js";
 
@@ -53,7 +53,7 @@ router.get("/admin/contents", requireAdmin, async (req, res) => {
     const contents = await db
       .select()
       .from(contentsTable)
-      .orderBy(contentsTable.createdAt);
+      .orderBy(desc(contentsTable.createdAt));
 
     res.json(
       contents.map((c) => ({
@@ -217,7 +217,7 @@ router.get("/contents", async (req, res) => {
       createdAt: contentsTable.createdAt,
     })
     .from(contentsTable)
-    .orderBy(contentsTable.createdAt);
+    .orderBy(desc(contentsTable.createdAt));
 
   res.json(contents.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() })));
 });
@@ -363,7 +363,7 @@ router.get("/admin/orders", requireAdmin, async (req, res) => {
   const orders = await db
     .select()
     .from(ordersTable)
-    .orderBy(ordersTable.createdAt);
+    .orderBy(desc(ordersTable.createdAt));
 
   res.json(
     orders.map((o) => ({
@@ -384,7 +384,7 @@ router.get("/admin/users", requireAdmin, async (req, res) => {
       createdAt: usersTable.createdAt,
     })
     .from(usersTable)
-    .orderBy(usersTable.createdAt);
+    .orderBy(desc(usersTable.createdAt));
 
   res.json(users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() })));
 });

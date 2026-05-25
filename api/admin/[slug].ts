@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db, ordersTable, usersTable, contentsTable, userAccessTable } from "../lib/db.js";
 import { requireAdmin } from "../lib/auth.js";
 
@@ -46,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const orders = await db
         .select()
         .from(ordersTable)
-        .orderBy(ordersTable.createdAt);
+        .orderBy(desc(ordersTable.createdAt));
 
       return res.json(
         orders.map((o) => ({
@@ -74,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           createdAt: usersTable.createdAt,
         })
         .from(usersTable)
-        .orderBy(usersTable.createdAt);
+        .orderBy(desc(usersTable.createdAt));
 
       return res.json(users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() })));
     } catch (err: any) {
@@ -89,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const contents = await db
           .select()
           .from(contentsTable)
-          .orderBy(contentsTable.createdAt);
+          .orderBy(desc(contentsTable.createdAt));
 
         return res.json(
           contents.map((c) => ({
