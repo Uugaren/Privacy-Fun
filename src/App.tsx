@@ -1361,10 +1361,6 @@ function PremiumPostCard({ content }: { content: any }) {
         {content.description && (
           <p className="text-[13px] text-gray-600 mt-1 leading-relaxed">{content.description}</p>
         )}
-        <p className="text-[11px] text-gray-400 mt-2">
-          {isBR ? "Publicado em " : "Published on "}
-          {new Date(content.createdAt).toLocaleDateString(isBR ? "pt-BR" : "en-US")}
-        </p>
       </div>
 
     </div>
