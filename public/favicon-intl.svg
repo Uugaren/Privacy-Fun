@@ -1,0 +1,10 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="180" height="180" rx="45" fill="#00AFF0"/>
+  <!-- Lock shackle (loop) -->
+  <path d="M90 40C73.4315 40 60 53.4315 60 70V85H120V70C120 53.4315 106.569 40 90 40Z" stroke="white" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <!-- Lock body -->
+  <rect x="45" y="80" width="90" height="65" rx="15" fill="white"/>
+  <!-- Keyhole -->
+  <circle cx="90" cy="108" r="8" fill="#00AFF0"/>
+  <path d="M87 108H93L95 125H85L87 108Z" fill="#00AFF0"/>
+</svg>

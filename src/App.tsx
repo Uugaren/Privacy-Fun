@@ -2399,6 +2399,15 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
 // ============================================================================
 
 export default function App() {
+  const isBR = useCountry();
+
+  useEffect(() => {
+    const favicon = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
+    if (favicon) {
+      favicon.href = isBR ? "/favicon-br.svg" : "/favicon-intl.svg";
+    }
+  }, [isBR]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
