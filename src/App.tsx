@@ -1275,22 +1275,22 @@ function PremiumPostCard({ content }: { content: any }) {
       </div>
 
       {/* Unlocked Content Area */}
-      <div className="relative w-full bg-black flex items-center justify-center overflow-hidden aspect-square select-none">
+      <div className="relative w-full bg-white flex items-center justify-center overflow-hidden select-none">
         {loading ? (
-          <div className="flex flex-col items-center gap-2 aspect-square justify-center w-full bg-gray-900 text-white">
+          <div className="flex flex-col items-center gap-2 aspect-video justify-center w-full bg-gray-50 text-gray-400">
             <Loader2 className="h-6 w-6 animate-spin text-[#e89c30]" />
-            <span className="text-[12px] text-gray-400">
+            <span className="text-[12px] text-gray-500">
               {isBR ? "Carregando mídia..." : "Loading media..."}
             </span>
           </div>
         ) : mediaUrls.length > 0 ? (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full flex items-center justify-center bg-white">
             {/* Active Media */}
             {getMediaType(mediaUrls[activeIndex]) === "video" ? (
               <video
                 key={mediaUrls[activeIndex]}
                 src={mediaUrls[activeIndex]}
-                className="w-full h-full object-contain bg-black"
+                className="w-full h-auto max-h-[600px] object-contain bg-white"
                 controls
                 controlsList="nodownload"
                 onContextMenu={(e) => e.preventDefault()}
@@ -1300,7 +1300,7 @@ function PremiumPostCard({ content }: { content: any }) {
               <img
                 src={mediaUrls[activeIndex]}
                 alt={`${content.title} - ${activeIndex + 1}`}
-                className="w-full h-full object-contain"
+                className="w-full h-auto max-h-[600px] object-contain"
               />
             )}
 
@@ -1346,7 +1346,7 @@ function PremiumPostCard({ content }: { content: any }) {
             )}
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-2 p-4 text-center text-gray-400 aspect-square justify-center w-full bg-gray-50">
+          <div className="flex flex-col items-center gap-2 p-4 text-center text-gray-400 aspect-video justify-center w-full bg-gray-50">
             <Lock className="h-6 w-6" />
             <span className="text-[12px]">
               {isBR ? "Conteúdo indisponível" : "Content unavailable"}
