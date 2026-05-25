@@ -29,6 +29,7 @@ import {
   AlertCircle,
   Upload,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import {
   useCreateCheckout,
@@ -39,6 +40,9 @@ import {
   useListAdminUsers,
   useListContents,
   useCreateContent,
+  useListAdminContents,
+  useUpdateContent,
+  useDeleteContent,
   setAuthTokenGetter,
 } from "./api-client";
 
@@ -1730,8 +1734,14 @@ function AdminContents({
   showNew: boolean;
   setShowNew: (v: boolean) => void;
 }) {
-  const { data, isLoading, refetch } = useListContents();
+  const { data, isLoading, refetch } = useListAdminContents();
   const createMutation = useCreateContent();
+  const updateMutation = useUpdateContent();
+  const deleteMutation = useDeleteContent();
+
+  const [editingContent, setEditingContent] = useState<any | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const isEdit = !!editingContent;
 
   const [form, setForm] = useState({
     title: "",
@@ -1765,6 +1775,26 @@ function AdminContents({
     setUploadingPrivate(false);
     setFormError("");
     setFormSuccess(false);
+  };
+
+  const handleClose = () => {
+    setShowNew(false);
+    setEditingContent(null);
+    resetForm();
+  };
+
+  const handleEditClick = (content: any) => {
+    setEditingContent(content);
+    setForm({
+      title: content.title || "",
+      description: content.description || "",
+      type: content.type || "album",
+      price: content.price != null ? (content.price / 100).toString() : "",
+      teaserUrl: content.teaserUrl || "",
+      privateFolderKey: content.privateFolderKey || "",
+    });
+    setTeaserPreview(content.teaserUrl || "");
+    setPrivatePreview(content.privateFolderKey || "");
   };
 
   const handleFileChange = async (file: File, isTeaser: boolean) => {
@@ -1863,13 +1893,52 @@ function AdminContents({
       setFormSuccess(true);
       refetch();
       setTimeout(() => {
-        resetForm();
-        setShowNew(false);
+        handleClose();
       }, 1500);
     } catch {
       setFormError("Erro ao criar conteúdo. Verifique os dados e tente novamente.");
     }
   };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+    setFormSuccess(false);
+
+    if (!form.title) {
+      setFormError("O campo título é obrigatório.");
+      return;
+    }
+    if (!form.privateFolderKey) {
+      setFormError("O conteúdo exclusivo é obrigatório.");
+      return;
+    }
+
+    try {
+      await updateMutation.mutateAsync({
+        data: {
+          id: editingContent.id,
+          title: form.title,
+          description: form.description || undefined,
+          type: form.type as "album" | "video",
+          price: form.price ? Number(form.price) : undefined,
+          teaserUrl: form.teaserUrl || undefined,
+          privateFolderKey: form.privateFolderKey || undefined,
+        },
+      });
+      setFormSuccess(true);
+      refetch();
+      setTimeout(() => {
+        handleClose();
+      }, 1500);
+    } catch {
+      setFormError("Erro ao atualizar conteúdo. Verifique os dados e tente novamente.");
+    }
+  };
+
+  const showModal = showNew || isEdit;
+  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isSubmitDisabled = uploadingTeaser || uploadingPrivate || isPending || !form.title || !form.privateFolderKey;
 
   return (
     <div className="space-y-4">
@@ -1884,16 +1953,15 @@ function AdminContents({
         </button>
       </div>
 
-      {/* Instagram-style creation dialog */}
-      {showNew && (
+      {/* Instagram-style creation/edition dialog */}
+      {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity cursor-default"
             onClick={() => {
-              if (!uploadingTeaser && !uploadingPrivate && !createMutation.isPending) {
-                setShowNew(false);
-                resetForm();
+              if (!uploadingTeaser && !uploadingPrivate && !isPending) {
+                handleClose();
               }
             }}
           />
@@ -1905,21 +1973,20 @@ function AdminContents({
             <div className="h-12 border-b border-gray-100 flex items-center justify-between px-4 shrink-0 bg-white">
               <button
                 type="button"
-                onClick={() => {
-                  setShowNew(false);
-                  resetForm();
-                }}
+                onClick={handleClose}
                 className="text-gray-500 hover:text-black transition"
               >
                 <X className="h-5 w-5" />
               </button>
-              <span className="text-[15px] font-bold text-black">Criar nova publicação</span>
+              <span className="text-[15px] font-bold text-black">
+                {isEdit ? "Editar publicação" : "Criar nova publicação"}
+              </span>
               <button
-                onClick={handleCreate}
-                disabled={uploadingTeaser || uploadingPrivate || createMutation.isPending || !form.title || !form.privateFolderKey}
+                onClick={isEdit ? handleSave : handleCreate}
+                disabled={isSubmitDisabled}
                 className="text-[14px] font-bold text-[#e89c30] hover:text-[#d48a20] disabled:opacity-40 transition"
               >
-                {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Compartilhar"}
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEdit ? "Salvar" : "Compartilhar")}
               </button>
             </div>
 
@@ -2052,16 +2119,16 @@ function AdminContents({
                   {formSuccess && (
                     <div className="flex items-center gap-2 rounded-lg bg-green-50 p-2.5 text-[12px] text-green-700 font-medium mb-3">
                       <BadgeCheck className="h-4 w-4 shrink-0" />
-                      Publicação compartilhada!
+                      {isEdit ? "Publicação salva com sucesso!" : "Publicação compartilhada!"}
                     </div>
                   )}
 
                   <button
-                    onClick={handleCreate}
-                    disabled={uploadingTeaser || uploadingPrivate || createMutation.isPending || !form.title || !form.privateFolderKey}
+                    onClick={isEdit ? handleSave : handleCreate}
+                    disabled={isSubmitDisabled}
                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-black py-3 text-[14px] font-bold text-white transition hover:bg-gray-800 disabled:opacity-40"
                   >
-                    {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publicar Conteúdo"}
+                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEdit ? "Salvar Alterações" : "Publicar Conteúdo")}
                   </button>
                 </div>
 
@@ -2069,6 +2136,42 @@ function AdminContents({
 
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deletingId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeletingId(null)} />
+          <div className="relative w-full max-w-[400px] bg-white rounded-2xl p-6 shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-[16px] font-bold text-black">Excluir conteúdo?</h3>
+            <p className="text-[14px] text-gray-500 mt-2">
+              Tem certeza que deseja excluir esta publicação? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setDeletingId(null)}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[14px] font-semibold text-gray-700 hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await deleteMutation.mutateAsync({ params: { id: deletingId } });
+                    refetch();
+                    setDeletingId(null);
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 rounded-xl bg-red-600 py-2.5 text-[14px] font-semibold text-white hover:bg-red-700 transition flex items-center justify-center gap-1.5"
+              >
+                {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2083,7 +2186,7 @@ function AdminContents({
       ) : (
         <div className="space-y-2">
           {data.map((c) => (
-            <div key={c.id} className="bg-white rounded-2xl border border-gray-200 p-4 flex items-start gap-3">
+            <div key={c.id} className="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-3">
               <div
                 className={`shrink-0 h-10 w-10 rounded-xl flex items-center justify-center ${c.type === "video" ? "bg-purple-50" : "bg-orange-50"
                   }`}
@@ -2113,6 +2216,24 @@ function AdminContents({
                     #{c.id} · {new Date(c.createdAt).toLocaleDateString("pt-BR")}
                   </span>
                 </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 self-center">
+                <button
+                  type="button"
+                  onClick={() => handleEditClick(c)}
+                  className="p-2 text-gray-400 hover:text-[#e89c30] hover:bg-orange-50 rounded-xl transition cursor-pointer"
+                  title="Editar"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeletingId(c.id)}
+                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition cursor-pointer"
+                  title="Excluir"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             </div>
           ))}

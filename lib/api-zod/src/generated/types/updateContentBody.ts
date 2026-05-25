@@ -5,13 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { UpdateContentBodyType } from './updateContentBodyType.ts';
 
-export interface ContentPublic {
+export type UpdateContentBody = {
   id: number;
   title: string;
   description?: string | null;
-  type: string;
+  type?: UpdateContentBodyType;
   price?: number | null;
   teaserUrl?: string | null;
-  createdAt: string;
-}
+  privateFolderKey?: string | null;
+};

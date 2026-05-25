@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type CreateContentInputType = typeof CreateContentInputType[keyof typeof CreateContentInputType];
+export type UpdateContentBodyType = typeof UpdateContentBodyType[keyof typeof UpdateContentBodyType];
 
 
-export const CreateContentInputType = {
+export const UpdateContentBodyType = {
   album: 'album',
   video: 'video',
 } as const;

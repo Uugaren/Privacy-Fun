@@ -47,6 +47,124 @@ router.post("/admin/contents", requireAdmin, async (req, res) => {
   res.status(201).json(content);
 });
 
+// GET /admin/contents — list all contents with private keys (admin only)
+router.get("/admin/contents", requireAdmin, async (req, res) => {
+  try {
+    const contents = await db
+      .select()
+      .from(contentsTable)
+      .orderBy(contentsTable.createdAt);
+
+    res.json(
+      contents.map((c) => ({
+        ...c,
+        createdAt: c.createdAt.toISOString(),
+        updatedAt: c.updatedAt.toISOString(),
+      }))
+    );
+  } catch (error: any) {
+    req.log.error(error, "Admin list contents error");
+    res.status(500).json({ error: "Erro interno ao listar conteúdos" });
+  }
+});
+
+// PUT /admin/contents — update content (admin only)
+router.put("/admin/contents", requireAdmin, async (req, res) => {
+  const { id, title, description, type, price, teaserUrl, privateFolderKey } = req.body as {
+    id?: unknown;
+    title?: unknown;
+    description?: unknown;
+    type?: unknown;
+    price?: unknown;
+    teaserUrl?: unknown;
+    privateFolderKey?: unknown;
+  };
+
+  if (!id || (typeof id !== "number" && typeof id !== "string")) {
+    res.status(400).json({ error: "Campo 'id' é obrigatório" });
+    return;
+  }
+
+  const numericId = Number(id);
+  if (isNaN(numericId)) {
+    res.status(400).json({ error: "ID inválido" });
+    return;
+  }
+
+  if (!title || typeof title !== "string") {
+    res.status(400).json({ error: "Campo 'title' é obrigatório" });
+    return;
+  }
+
+  const validTypes = ["album", "video"];
+  const contentType = typeof type === "string" ? type : "album";
+  if (!validTypes.includes(contentType)) {
+    res.status(400).json({ error: "Tipo inválido — use 'album' ou 'video'" });
+    return;
+  }
+
+  try {
+    const [updatedContent] = await db
+      .update(contentsTable)
+      .set({
+        title,
+        description: typeof description === "string" ? description : null,
+        type: contentType,
+        price: typeof price === "number" ? Math.round(price * 100) : null,
+        teaserUrl: typeof teaserUrl === "string" ? teaserUrl : null,
+        privateFolderKey: typeof privateFolderKey === "string" ? privateFolderKey : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(contentsTable.id, numericId))
+      .returning();
+
+    if (!updatedContent) {
+      res.status(404).json({ error: "Conteúdo não encontrado" });
+      return;
+    }
+
+    req.log.info({ contentId: updatedContent.id }, "admin: content updated");
+    res.json(updatedContent);
+  } catch (error: any) {
+    req.log.error(error, "Content update error");
+    res.status(500).json({ error: "Erro interno ao atualizar conteúdo" });
+  }
+});
+
+// DELETE /admin/contents — delete content (admin only)
+router.delete("/admin/contents", requireAdmin, async (req, res) => {
+  const id = req.query.id || req.body?.id;
+
+  if (!id || (typeof id !== "number" && typeof id !== "string")) {
+    res.status(400).json({ error: "Campo 'id' é obrigatório" });
+    return;
+  }
+
+  const numericId = Number(id);
+  if (isNaN(numericId)) {
+    res.status(400).json({ error: "ID inválido" });
+    return;
+  }
+
+  try {
+    const [deletedContent] = await db
+      .delete(contentsTable)
+      .where(eq(contentsTable.id, numericId))
+      .returning();
+
+    if (!deletedContent) {
+      res.status(404).json({ error: "Conteúdo não encontrado" });
+      return;
+    }
+
+    req.log.info({ contentId: deletedContent.id }, "admin: content deleted");
+    res.json({ message: "Conteúdo deletado com sucesso", content: deletedContent });
+  } catch (error: any) {
+    req.log.error(error, "Content deletion error");
+    res.status(500).json({ error: "Erro interno ao deletar conteúdo" });
+  }
+});
+
 // POST /admin/upload — upload file as base64 (admin only)
 router.post("/admin/upload", requireAdmin, async (req, res) => {
   const { fileName, fileData } = req.body as {

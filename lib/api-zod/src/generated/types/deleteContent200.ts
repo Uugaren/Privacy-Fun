@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface WebhookAck {
-  received: boolean;
-  processed: boolean;
-}
+export type DeleteContent200 = {
+  message?: string;
+};
