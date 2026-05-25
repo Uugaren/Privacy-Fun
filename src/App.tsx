@@ -1265,7 +1265,7 @@ function PremiumPostCard({ content }: { content: any }) {
       <div className="flex items-start justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 overflow-hidden rounded-full border border-gray-200 bg-gradient-to-br from-[#e89c30] to-[#f5c842] flex items-center justify-center text-white text-[12px] font-bold uppercase shadow-sm">
-            DW
+            <img src={profileImg} alt="Duda Wolfram" className="h-full w-full object-cover" />
           </div>
           <div>
             <p className="text-[14px] font-semibold text-black">Duda Wolfram</p>
