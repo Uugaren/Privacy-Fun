@@ -1256,7 +1256,15 @@ function PremiumPostCard({ content }: { content: any }) {
   };
 
   const getMediaType = (url: string) => {
-    return url.includes("video") || url.endsWith(".mp4") || url.endsWith(".mov") || url.endsWith(".webm") || url.includes("data:video") ? "video" : "image";
+    if (!url) return "image";
+    const cleanUrl = url.split("?")[0].split("#")[0].toLowerCase();
+    const isVideoExtension = cleanUrl.endsWith(".mp4") || 
+                           cleanUrl.endsWith(".mov") || 
+                           cleanUrl.endsWith(".webm") || 
+                           cleanUrl.endsWith(".mkv") || 
+                           cleanUrl.endsWith(".avi");
+    const isVideoKeyword = url.toLowerCase().includes("video") || url.includes("data:video");
+    return isVideoExtension || isVideoKeyword ? "video" : "image";
   };
 
   return (
@@ -1731,7 +1739,15 @@ function MultiFileDropZone({
   };
 
   const getMediaType = (url: string) => {
-    return url.includes("video") || url.endsWith(".mp4") || url.endsWith(".mov") || url.endsWith(".webm") || url.includes("data:video") ? "video" : "image";
+    if (!url) return "image";
+    const cleanUrl = url.split("?")[0].split("#")[0].toLowerCase();
+    const isVideoExtension = cleanUrl.endsWith(".mp4") || 
+                           cleanUrl.endsWith(".mov") || 
+                           cleanUrl.endsWith(".webm") || 
+                           cleanUrl.endsWith(".mkv") || 
+                           cleanUrl.endsWith(".avi");
+    const isVideoKeyword = url.toLowerCase().includes("video") || url.includes("data:video");
+    return isVideoExtension || isVideoKeyword ? "video" : "image";
   };
 
   return (
@@ -1897,7 +1913,8 @@ function AdminContents({
       const uploadedUrls: string[] = [];
 
       for (const file of files) {
-        const localPreviewUrl = URL.createObjectURL(file);
+        const isVideo = file.type.startsWith("video/");
+        const localPreviewUrl = URL.createObjectURL(file) + (isVideo ? "#video" : "#image");
         
         // Show local preview immediately in loading state
         if (isTeaser) {
@@ -1905,7 +1922,6 @@ function AdminContents({
         } else {
           setPrivatePreviews(prev => [...prev, localPreviewUrl]);
           // Auto-detect type
-          const isVideo = file.type.startsWith("video/");
           setForm(prev => ({ ...prev, type: isVideo ? "video" : "album" }));
         }
 
@@ -1946,13 +1962,13 @@ function AdminContents({
         setForm(prev => {
           const current = parseMediaList(prev.teaserUrl);
           const updated = [...current, ...uploadedUrls];
-          return { ...prev, teaserUrl: JSON.stringify(updated) };
+          return { ...prev, teaserUrl: JSON.stringify(updated.map(u => u.split("#")[0])) };
         });
       } else {
         setForm(prev => {
           const current = parseMediaList(prev.privateFolderKey);
           const updated = [...current, ...uploadedUrls];
-          return { ...prev, privateFolderKey: JSON.stringify(updated) };
+          return { ...prev, privateFolderKey: JSON.stringify(updated.map(u => u.split("#")[0])) };
         });
       }
     } catch (err: any) {
@@ -1980,13 +1996,19 @@ function AdminContents({
     if (isTeaser) {
       setTeaserPreviews(prev => {
         const updated = prev.filter((_, idx) => idx !== index);
-        setForm(formPrev => ({ ...formPrev, teaserUrl: updated.length > 0 ? JSON.stringify(updated) : "" }));
+        setForm(formPrev => ({ 
+          ...formPrev, 
+          teaserUrl: updated.length > 0 ? JSON.stringify(updated.map(u => u.split("#")[0])) : "" 
+        }));
         return updated;
       });
     } else {
       setPrivatePreviews(prev => {
         const updated = prev.filter((_, idx) => idx !== index);
-        setForm(formPrev => ({ ...formPrev, privateFolderKey: updated.length > 0 ? JSON.stringify(updated) : "" }));
+        setForm(formPrev => ({ 
+          ...formPrev, 
+          privateFolderKey: updated.length > 0 ? JSON.stringify(updated.map(u => u.split("#")[0])) : "" 
+        }));
         return updated;
       });
     }
