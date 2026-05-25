@@ -1201,10 +1201,25 @@ function LoginPage() {
   );
 }
 
+// --- Helpers for Carousel ---
+const parseMediaList = (urlStr: string | null | undefined): string[] => {
+  if (!urlStr) return [];
+  const trimmed = urlStr.trim();
+  if (trimmed.startsWith("[")) {
+    try {
+      return JSON.parse(trimmed) as string[];
+    } catch (e) {
+      console.error("Failed to parse media list:", e);
+    }
+  }
+  return [urlStr];
+};
+
 // --- Premium Post Card for Members ---
 function PremiumPostCard({ content }: { content: any }) {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const isBR = useCountry();
 
   useEffect(() => {
@@ -1227,7 +1242,22 @@ function PremiumPostCard({ content }: { content: any }) {
     fetchStream();
   }, [content.id]);
 
-  const isVideo = content.type === "video" || (streamUrl && (streamUrl.includes(".mp4") || streamUrl.includes(".mov") || streamUrl.includes(".webm")));
+  const mediaUrls = parseMediaList(streamUrl);
+  const hasMultiple = mediaUrls.length > 1;
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveIndex((prev) => (prev > 0 ? prev - 1 : prev));
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveIndex((prev) => (prev < mediaUrls.length - 1 ? prev + 1 : prev));
+  };
+
+  const getMediaType = (url: string) => {
+    return url.includes("video") || url.endsWith(".mp4") || url.endsWith(".mov") || url.endsWith(".webm") || url.includes("data:video") ? "video" : "image";
+  };
 
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm mt-4">
@@ -1245,35 +1275,78 @@ function PremiumPostCard({ content }: { content: any }) {
       </div>
 
       {/* Unlocked Content Area */}
-      <div className="relative w-full bg-black/5 flex items-center justify-center overflow-hidden">
+      <div className="relative w-full bg-black flex items-center justify-center overflow-hidden aspect-square select-none">
         {loading ? (
-          <div className="flex flex-col items-center gap-2 aspect-video justify-center w-full">
+          <div className="flex flex-col items-center gap-2 aspect-square justify-center w-full bg-gray-900 text-white">
             <Loader2 className="h-6 w-6 animate-spin text-[#e89c30]" />
             <span className="text-[12px] text-gray-400">
               {isBR ? "Carregando mídia..." : "Loading media..."}
             </span>
           </div>
-        ) : streamUrl ? (
-          isVideo ? (
-            <video
-              src={streamUrl}
-              className="w-full max-h-[600px] object-contain bg-black"
-              controls
-              controlsList="nodownload"
-              onContextMenu={(e) => e.preventDefault()}
-              playsInline
-            />
-          ) : (
-            <div className="aspect-video w-full">
-              <img
-                src={streamUrl}
-                alt={content.title}
-                className="w-full h-full object-cover"
+        ) : mediaUrls.length > 0 ? (
+          <div className="relative w-full h-full flex items-center justify-center">
+            {/* Active Media */}
+            {getMediaType(mediaUrls[activeIndex]) === "video" ? (
+              <video
+                key={mediaUrls[activeIndex]}
+                src={mediaUrls[activeIndex]}
+                className="w-full h-full object-contain bg-black"
+                controls
+                controlsList="nodownload"
+                onContextMenu={(e) => e.preventDefault()}
+                playsInline
               />
-            </div>
-          )
+            ) : (
+              <img
+                src={mediaUrls[activeIndex]}
+                alt={`${content.title} - ${activeIndex + 1}`}
+                className="w-full h-full object-contain"
+              />
+            )}
+
+            {/* Left/Right Navigation Arrows */}
+            {hasMultiple && activeIndex > 0 && (
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition shadow-lg border border-white/10 cursor-pointer"
+              >
+                <ChevronDown className="h-4 w-4 rotate-90" />
+              </button>
+            )}
+            {hasMultiple && activeIndex < mediaUrls.length - 1 && (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition shadow-lg border border-white/10 cursor-pointer"
+              >
+                <ChevronDown className="h-4 w-4 -rotate-90" />
+              </button>
+            )}
+
+            {/* Dots Indicator */}
+            {hasMultiple && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex gap-1 bg-black/40 px-2.5 py-1.5 rounded-full backdrop-blur-sm border border-white/10">
+                {mediaUrls.map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`h-1.5 w-1.5 rounded-full transition-all ${
+                      idx === activeIndex ? "bg-[#e89c30] scale-120" : "bg-white/60"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Index Counter */}
+            {hasMultiple && (
+              <div className="absolute top-3 right-3 z-10 bg-black/60 px-2 py-1 rounded-full text-[11px] font-bold text-white tracking-wide border border-white/10">
+                {activeIndex + 1}/{mediaUrls.length}
+              </div>
+            )}
+          </div>
         ) : (
-          <div className="flex flex-col items-center gap-2 p-4 text-center text-gray-400 aspect-video justify-center w-full">
+          <div className="flex flex-col items-center gap-2 p-4 text-center text-gray-400 aspect-square justify-center w-full bg-gray-50">
             <Lock className="h-6 w-6" />
             <span className="text-[12px]">
               {isBR ? "Conteúdo indisponível" : "Content unavailable"}
@@ -1620,27 +1693,27 @@ function AdminUsers() {
 }
 
 // --- Admin Contents ---
-interface FileDropZoneProps {
+interface MultiFileDropZoneProps {
   id: string;
-  previewUrl: string;
+  previewUrls: string[];
   uploading: boolean;
   dragOver: boolean;
   setDragOver: (v: boolean) => void;
-  onFileSelect: (file: File) => void;
-  onRemove: () => void;
+  onFilesSelect: (files: File[]) => void;
+  onRemove: (index: number) => void;
   placeholderText: string;
   isRequired?: boolean;
 }
 
-function FileDropZone({
-  previewUrl,
+function MultiFileDropZone({
+  previewUrls,
   uploading,
   dragOver,
   setDragOver,
-  onFileSelect,
+  onFilesSelect,
   onRemove,
   placeholderText,
-}: FileDropZoneProps) {
+}: MultiFileDropZoneProps) {
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1656,12 +1729,14 @@ function FileDropZone({
     e.stopPropagation();
     setDragOver(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      onFileSelect(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onFilesSelect(Array.from(e.dataTransfer.files));
     }
   };
 
-  const isVideoPreview = previewUrl.includes("video") || previewUrl.endsWith(".mp4") || previewUrl.endsWith(".mov") || previewUrl.endsWith(".webm") || previewUrl.includes("data:video");
+  const getMediaType = (url: string) => {
+    return url.includes("video") || url.endsWith(".mp4") || url.endsWith(".mov") || url.endsWith(".webm") || url.includes("data:video") ? "video" : "image";
+  };
 
   return (
     <div
@@ -1669,59 +1744,74 @@ function FileDropZone({
       onDragOver={handleDrag}
       onDragLeave={handleDrag}
       onDrop={handleDrop}
-      className={`relative flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-xl transition overflow-hidden min-h-[140px] bg-white ${dragOver ? "border-[#e89c30] bg-orange-50/20" : "border-gray-200 hover:border-gray-300"
-        }`}
+      className={`relative flex-1 flex flex-col border-2 border-dashed rounded-xl transition bg-white min-h-[140px] p-3 ${
+        dragOver ? "border-[#e89c30] bg-orange-50/20" : "border-gray-200 hover:border-gray-300"
+      }`}
     >
-      {previewUrl ? (
-        <div className="absolute inset-0 w-full h-full group">
-          {isVideoPreview ? (
-            <video
-              src={previewUrl}
-              className="w-full h-full object-cover"
-              controls={false}
-              muted
-              loop
-              autoPlay
-            />
-          ) : (
-            <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
-          )}
-
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition gap-2">
-            {uploading ? (
-              <Loader2 className="h-6 w-6 text-white animate-spin" />
-            ) : (
-              <button
-                type="button"
-                onClick={onRemove}
-                className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition shadow-lg"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-          {uploading && (
-            <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-              <Loader2 className="h-6 w-6 text-white animate-spin" />
-            </div>
-          )}
-        </div>
-      ) : (
-        <label className="cursor-pointer flex flex-col items-center text-center p-4 w-full h-full justify-center">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{placeholderText}</span>
+        <label className="cursor-pointer text-[11px] font-bold text-[#e89c30] hover:text-[#d48a20] transition select-none">
           <input
             type="file"
+            multiple
             accept="image/*,video/*"
             className="hidden"
             onChange={(e) => {
-              if (e.target.files && e.target.files[0]) {
-                onFileSelect(e.target.files[0]);
+              if (e.target.files && e.target.files.length > 0) {
+                onFilesSelect(Array.from(e.target.files));
               }
             }}
           />
-          <Upload className="h-6 w-6 text-gray-400 mb-2" />
-          <p className="text-[12px] font-semibold text-gray-700">{placeholderText}</p>
-          <p className="text-[10px] text-gray-400 mt-1">Arrastar e soltar ou clique para escolher</p>
+          + Adicionar mídia
         </label>
+      </div>
+
+      {previewUrls.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+          {uploading ? (
+            <Loader2 className="h-6 w-6 text-[#e89c30] animate-spin mb-2" />
+          ) : (
+            <Upload className="h-6 w-6 text-gray-400 mb-2" />
+          )}
+          <p className="text-[12px] font-semibold text-gray-700">Arraste arquivos ou clique em "+ Adicionar mídia"</p>
+          <p className="text-[10px] text-gray-400 mt-1">Imagens e vídeos permitidos</p>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto max-h-[160px] pr-1">
+          <div className="grid grid-cols-3 gap-2">
+            {previewUrls.map((url, idx) => (
+              <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-100 group bg-black">
+                {getMediaType(url) === "video" ? (
+                  <video
+                    src={url}
+                    className="w-full h-full object-cover"
+                    controls={false}
+                    muted
+                  />
+                ) : (
+                  <img src={url} className="w-full h-full object-cover" alt={`Preview ${idx}`} />
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                  <button
+                    type="button"
+                    onClick={() => onRemove(idx)}
+                    className="p-1.5 bg-red-600 text-white rounded-full hover:bg-red-700 transition shadow-lg cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <span className="absolute top-1 left-1 bg-black/60 text-white px-1.5 py-0.5 rounded text-[9px] font-bold select-none">
+                  {idx + 1}
+                </span>
+              </div>
+            ))}
+            {uploading && (
+              <div className="aspect-square rounded-lg border border-dashed border-orange-300 flex items-center justify-center bg-orange-50/10">
+                <Loader2 className="h-5 w-5 text-[#e89c30] animate-spin" />
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1754,24 +1844,20 @@ function AdminContents({
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState(false);
 
-  // Upload state
-  const [, setTeaserFile] = useState<File | null>(null);
-  const [teaserPreview, setTeaserPreview] = useState<string>("");
+  // Upload states
+  const [teaserPreviews, setTeaserPreviews] = useState<string[]>([]);
   const [uploadingTeaser, setUploadingTeaser] = useState(false);
   const [dragOverTeaser, setDragOverTeaser] = useState(false);
 
-  const [, setPrivateFile] = useState<File | null>(null);
-  const [privatePreview, setPrivatePreview] = useState<string>("");
+  const [privatePreviews, setPrivatePreviews] = useState<string[]>([]);
   const [uploadingPrivate, setUploadingPrivate] = useState(false);
   const [dragOverPrivate, setDragOverPrivate] = useState(false);
 
   const resetForm = () => {
     setForm({ title: "", description: "", type: "album", price: "", teaserUrl: "", privateFolderKey: "" });
-    setTeaserFile(null);
-    setTeaserPreview("");
+    setTeaserPreviews([]);
     setUploadingTeaser(false);
-    setPrivateFile(null);
-    setPrivatePreview("");
+    setPrivatePreviews([]);
     setUploadingPrivate(false);
     setFormError("");
     setFormSuccess(false);
@@ -1785,6 +1871,9 @@ function AdminContents({
 
   const handleEditClick = (content: any) => {
     setEditingContent(content);
+    const teasers = parseMediaList(content.teaserUrl);
+    const privates = parseMediaList(content.privateFolderKey);
+
     setForm({
       title: content.title || "",
       description: content.description || "",
@@ -1793,75 +1882,117 @@ function AdminContents({
       teaserUrl: content.teaserUrl || "",
       privateFolderKey: content.privateFolderKey || "",
     });
-    setTeaserPreview(content.teaserUrl || "");
-    setPrivatePreview(content.privateFolderKey || "");
+    setTeaserPreviews(teasers);
+    setPrivatePreviews(privates);
   };
 
-  const handleFileChange = async (file: File, isTeaser: boolean) => {
-    // 1. Show preview instantly
-    const previewUrl = URL.createObjectURL(file);
+  const handleFilesChange = async (files: File[], isTeaser: boolean) => {
     if (isTeaser) {
-      setTeaserFile(file);
-      setTeaserPreview(previewUrl);
       setUploadingTeaser(true);
     } else {
-      setPrivateFile(file);
-      setPrivatePreview(previewUrl);
       setUploadingPrivate(true);
-
-      // Auto-detect type
-      const isVideo = file.type.startsWith("video/");
-      setForm(prev => ({ ...prev, type: isVideo ? "video" : "album" }));
     }
 
-    // 2. Upload directly to Supabase Storage
     try {
       const supabaseUrl = "https://tswqkbfetbsayjcavuoc.supabase.co";
       const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzd3FrYmZldGJzYXlqY2F2dW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTE3MjksImV4cCI6MjA5NDk2NzcyOX0.CqCDzFEg_3Blgf-0nTHSMDnuNwzsKK65LNZsjJ7rnec";
       const bucketName = "Duda-bucket";
 
-      const ext = file.name.split('.').pop() || 'bin';
-      const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}.${ext}`;
-      const filePath = `uploads/${uniqueName}`;
+      const uploadedUrls: string[] = [];
 
-      const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`;
+      for (const file of files) {
+        const localPreviewUrl = URL.createObjectURL(file);
+        
+        // Show local preview immediately in loading state
+        if (isTeaser) {
+          setTeaserPreviews(prev => [...prev, localPreviewUrl]);
+        } else {
+          setPrivatePreviews(prev => [...prev, localPreviewUrl]);
+          // Auto-detect type
+          const isVideo = file.type.startsWith("video/");
+          setForm(prev => ({ ...prev, type: isVideo ? "video" : "album" }));
+        }
 
-      const response = await fetch(uploadUrl, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${anonKey}`,
-          "apikey": anonKey,
-          "Content-Type": file.type,
-        },
-        body: file, // Send raw file binary directly!
-      });
+        const ext = file.name.split('.').pop() || 'bin';
+        const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}.${ext}`;
+        const filePath = `uploads/${uniqueName}`;
 
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.message || "Erro no upload para o Supabase");
+        const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`;
+
+        const response = await fetch(uploadUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${anonKey}`,
+            "apikey": anonKey,
+            "Content-Type": file.type,
+          },
+          body: file,
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.message || "Erro no upload para o Supabase");
+        }
+
+        const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${filePath}`;
+        uploadedUrls.push(publicUrl);
+
+        // Swap local preview for Supabase URL
+        if (isTeaser) {
+          setTeaserPreviews(prev => prev.map(u => u === localPreviewUrl ? publicUrl : u));
+        } else {
+          setPrivatePreviews(prev => prev.map(u => u === localPreviewUrl ? publicUrl : u));
+        }
       }
 
-      // Generate the public URL
-      const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${filePath}`;
-
-      // Update form URL state
+      // Update form arrays
       if (isTeaser) {
-        setForm(prev => ({ ...prev, teaserUrl: publicUrl }));
+        setForm(prev => {
+          const current = parseMediaList(prev.teaserUrl);
+          const updated = [...current, ...uploadedUrls];
+          return { ...prev, teaserUrl: JSON.stringify(updated) };
+        });
       } else {
-        setForm(prev => ({ ...prev, privateFolderKey: publicUrl }));
+        setForm(prev => {
+          const current = parseMediaList(prev.privateFolderKey);
+          const updated = [...current, ...uploadedUrls];
+          return { ...prev, privateFolderKey: JSON.stringify(updated) };
+        });
       }
     } catch (err: any) {
       console.error(err);
       setFormError(isTeaser
-        ? `Erro ao subir a imagem de teaser: ${err.message || err}`
-        : `Erro ao subir o conteúdo exclusivo: ${err.message || err}`
+        ? `Erro ao subir mídias de teaser: ${err.message || err}`
+        : `Erro ao subir mídias exclusivas: ${err.message || err}`
       );
+      // Clean up local previews that failed
+      if (isTeaser) {
+        setTeaserPreviews(prev => prev.filter(u => u.startsWith("http")));
+      } else {
+        setPrivatePreviews(prev => prev.filter(u => u.startsWith("http")));
+      }
     } finally {
       if (isTeaser) {
         setUploadingTeaser(false);
       } else {
         setUploadingPrivate(false);
       }
+    }
+  };
+
+  const handleRemoveMedia = (index: number, isTeaser: boolean) => {
+    if (isTeaser) {
+      setTeaserPreviews(prev => {
+        const updated = prev.filter((_, idx) => idx !== index);
+        setForm(formPrev => ({ ...formPrev, teaserUrl: updated.length > 0 ? JSON.stringify(updated) : "" }));
+        return updated;
+      });
+    } else {
+      setPrivatePreviews(prev => {
+        const updated = prev.filter((_, idx) => idx !== index);
+        setForm(formPrev => ({ ...formPrev, privateFolderKey: updated.length > 0 ? JSON.stringify(updated) : "" }));
+        return updated;
+      });
     }
   };
 
@@ -1874,7 +2005,9 @@ function AdminContents({
       setFormError("O campo título é obrigatório.");
       return;
     }
-    if (!form.privateFolderKey) {
+    
+    const privateUrls = parseMediaList(form.privateFolderKey);
+    if (privateUrls.length === 0) {
       setFormError("O conteúdo exclusivo é obrigatório.");
       return;
     }
@@ -1909,7 +2042,9 @@ function AdminContents({
       setFormError("O campo título é obrigatório.");
       return;
     }
-    if (!form.privateFolderKey) {
+    
+    const privateUrls = parseMediaList(form.privateFolderKey);
+    if (privateUrls.length === 0) {
       setFormError("O conteúdo exclusivo é obrigatório.");
       return;
     }
@@ -1938,7 +2073,7 @@ function AdminContents({
 
   const showModal = showNew || isEdit;
   const isPending = createMutation.isPending || updateMutation.isPending;
-  const isSubmitDisabled = uploadingTeaser || uploadingPrivate || isPending || !form.title || !form.privateFolderKey;
+  const isSubmitDisabled = uploadingTeaser || uploadingPrivate || isPending || !form.title || parseMediaList(form.privateFolderKey).length === 0;
 
   return (
     <div className="space-y-4">
@@ -1998,43 +2133,29 @@ function AdminContents({
 
                 {/* Teaser Upload Slot */}
                 <div className="flex-1 flex flex-col min-h-0">
-                  <span className="text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">
-                    1. Capa Grátis / Teaser (Público)
-                  </span>
-                  <FileDropZone
+                  <MultiFileDropZone
                     id="teaser-drop"
-                    previewUrl={teaserPreview}
+                    previewUrls={teaserPreviews}
                     uploading={uploadingTeaser}
                     dragOver={dragOverTeaser}
                     setDragOver={setDragOverTeaser}
-                    onFileSelect={(file) => handleFileChange(file, true)}
-                    onRemove={() => {
-                      setTeaserPreview("");
-                      setTeaserFile(null);
-                      setForm(prev => ({ ...prev, teaserUrl: "" }));
-                    }}
-                    placeholderText="Imagem ou vídeo de capa grátis"
+                    onFilesSelect={(files) => handleFilesChange(files, true)}
+                    onRemove={(index) => handleRemoveMedia(index, true)}
+                    placeholderText="1. Capa Grátis / Teaser (Público)"
                   />
                 </div>
 
                 {/* Premium Content Upload Slot */}
                 <div className="flex-1 flex flex-col min-h-0">
-                  <span className="text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">
-                    2. Conteúdo Exclusivo (Premium) *
-                  </span>
-                  <FileDropZone
+                  <MultiFileDropZone
                     id="private-drop"
-                    previewUrl={privatePreview}
+                    previewUrls={privatePreviews}
                     uploading={uploadingPrivate}
                     dragOver={dragOverPrivate}
                     setDragOver={setDragOverPrivate}
-                    onFileSelect={(file) => handleFileChange(file, false)}
-                    onRemove={() => {
-                      setPrivatePreview("");
-                      setPrivateFile(null);
-                      setForm(prev => ({ ...prev, privateFolderKey: "" }));
-                    }}
-                    placeholderText="Foto ou vídeo exclusivo (bloqueado)"
+                    onFilesSelect={(files) => handleFilesChange(files, false)}
+                    onRemove={(index) => handleRemoveMedia(index, false)}
+                    placeholderText="2. Conteúdo Exclusivo (Premium) *"
                     isRequired
                   />
                 </div>

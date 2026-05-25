@@ -267,10 +267,31 @@ router.get("/contents/:id/secure-stream", requireAuth, async (req, res) => {
 
   let streamUrl = null;
   if (content.privateFolderKey) {
-    if (content.privateFolderKey.startsWith("http")) {
-      streamUrl = await getSupabaseSignedUrl(content.privateFolderKey);
+    if (content.privateFolderKey.trim().startsWith("[")) {
+      try {
+        const urls = JSON.parse(content.privateFolderKey) as string[];
+        const signedUrls = await Promise.all(
+          urls.map(async (url) => {
+            if (url.startsWith("http")) {
+              return await getSupabaseSignedUrl(url);
+            }
+            return `${url}?token=${signature}&expires=${expiresAt}&uid=${payload.sub}`;
+          })
+        );
+        streamUrl = JSON.stringify(signedUrls);
+      } catch (e) {
+        if (content.privateFolderKey.startsWith("http")) {
+          streamUrl = await getSupabaseSignedUrl(content.privateFolderKey);
+        } else {
+          streamUrl = `${content.privateFolderKey}?token=${signature}&expires=${expiresAt}&uid=${payload.sub}`;
+        }
+      }
     } else {
-      streamUrl = `${content.privateFolderKey}?token=${signature}&expires=${expiresAt}&uid=${payload.sub}`;
+      if (content.privateFolderKey.startsWith("http")) {
+        streamUrl = await getSupabaseSignedUrl(content.privateFolderKey);
+      } else {
+        streamUrl = `${content.privateFolderKey}?token=${signature}&expires=${expiresAt}&uid=${payload.sub}`;
+      }
     }
   }
 
